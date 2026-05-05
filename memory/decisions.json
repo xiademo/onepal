@@ -1,0 +1,12 @@
+{
+  "version": "0.1",
+  "decisions": [
+    {
+      "id": "decision_legacy_001",
+      "content": "主系统选择 OpenCode Desktop + DeepSeek V4 API，暂不引入 Hermes、GenericAgent、DeepTutor 作为主系统。",
+      "evidence": "OnePal 从 personal-assistant 归档重启而来，沿用相同架构决策。旧项目 store.json 记录。",
+      "source": "personal-assistant legacy",
+      "created_at": "2026-05-06T00:00:00+08:00"
+    }
+  ]
+}

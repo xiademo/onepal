@@ -1,0 +1,26 @@
+{
+  "version": "0.1",
+  "routes": [
+    {"intent_pattern": "code*", "agent": "opencode_builder", "priority": 1},
+    {"intent_pattern": "dashboard*", "agent": "opencode_builder", "priority": 1},
+    {"intent_pattern": "api*", "agent": "opencode_builder", "priority": 1},
+    {"intent_pattern": "memory*", "agent": "memory_curator", "priority": 2},
+    {"intent_pattern": "*remember*", "agent": "memory_curator", "priority": 2},
+    {"intent_pattern": "github*", "agent": "capability_hr", "priority": 3},
+    {"intent_pattern": "skill*", "agent": "capability_hr", "priority": 3},
+    {"intent_pattern": "install*", "agent": "capability_hr", "priority": 3},
+    {"intent_pattern": "tool*", "agent": "capability_hr", "priority": 3},
+    {"intent_pattern": "document*", "agent": "automation_input_manager", "priority": 4},
+    {"intent_pattern": "convert*", "agent": "automation_input_manager", "priority": 4},
+    {"intent_pattern": "search*", "agent": "research_scout", "priority": 5},
+    {"intent_pattern": "*research*", "agent": "deep_research_tutor", "priority": 6},
+    {"intent_pattern": "analyze*", "agent": "deep_research_tutor", "priority": 6},
+    {"intent_pattern": "learn*", "agent": "goal_growth_planner", "priority": 7},
+    {"intent_pattern": "growth*", "agent": "goal_growth_planner", "priority": 7},
+    {"intent_pattern": "plan*", "agent": "goal_growth_planner", "priority": 7},
+    {"intent_pattern": "career*", "agent": "career_asset_jd_agent", "priority": 8},
+    {"intent_pattern": "resume*", "agent": "career_asset_jd_agent", "priority": 8},
+    {"intent_pattern": "jd*", "agent": "career_asset_jd_agent", "priority": 8},
+    {"intent_pattern": "*", "agent": "coordinator", "priority": 10}
+  ]
+}

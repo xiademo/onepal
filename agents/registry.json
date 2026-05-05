@@ -1,0 +1,122 @@
+{
+  "version": "0.1",
+  "agents": [
+    {
+      "id": "coordinator",
+      "name": "Coordinator",
+      "role": "总调度",
+      "responsibilities": "接收用户请求，解析意图，路由到对应 Agent，管理任务树，协调多 Agent 协作",
+      "inputs": ["user_request", "task_tree", "route_table"],
+      "outputs": ["agent_task", "approval_request", "response_summary"],
+      "risk_level": "low",
+      "default_model": "deepseek/deepseek-v4-pro",
+      "can_execute": true,
+      "requires_approval": false,
+      "status": "active"
+    },
+    {
+      "id": "memory_curator",
+      "name": "Memory Curator",
+      "role": "记忆管理",
+      "responsibilities": "管理记忆生命周期：捕获提案、审核、批准/拒绝、衰减、归档。保证记忆一致性和质量",
+      "inputs": ["memory_proposal", "query", "user_decision"],
+      "outputs": ["store_entry", "archive_entry", "proposal_status"],
+      "risk_level": "medium",
+      "default_model": "deepseek/deepseek-v4-pro",
+      "can_execute": true,
+      "requires_approval": true,
+      "status": "active"
+    },
+    {
+      "id": "opencode_builder",
+      "name": "OpenCode Builder",
+      "role": "工程执行",
+      "responsibilities": "执行代码修改、文件创建、脚本执行。Dashboard/API/Script 的工程实现",
+      "inputs": ["change_request", "spec", "verification_criteria"],
+      "outputs": ["code_change", "file_create", "test_result"],
+      "risk_level": "high",
+      "default_model": "deepseek/deepseek-v4-pro",
+      "can_execute": true,
+      "requires_approval": true,
+      "status": "active"
+    },
+    {
+      "id": "capability_hr",
+      "name": "Capability HR",
+      "role": "技能招聘与管理",
+      "responsibilities": "搜索 GitHub 技能、评估质量、管理技能候选与安装审批",
+      "inputs": ["search_query", "candidate_repo", "install_request"],
+      "outputs": ["search_results", "candidate_entry", "install_proposal"],
+      "risk_level": "medium",
+      "default_model": "deepseek/deepseek-v4-pro",
+      "can_execute": false,
+      "requires_approval": true,
+      "status": "active"
+    },
+    {
+      "id": "automation_input_manager",
+      "name": "Automation Input Manager",
+      "role": "自动化输入处理",
+      "responsibilities": "处理文档输入、定时任务、文件转换。管理 data/input/ 管道的生命周期",
+      "inputs": ["document", "schedule_config", "file_event"],
+      "outputs": ["converted_file", "memory_proposal", "log_entry"],
+      "risk_level": "low",
+      "default_model": "deepseek/deepseek-v4-flash",
+      "can_execute": true,
+      "requires_approval": false,
+      "status": "active"
+    },
+    {
+      "id": "research_scout",
+      "name": "Research Scout",
+      "role": "信息搜索与情报",
+      "responsibilities": "执行 GitHub/网络搜索，收集情报，提取摘要，标记来源可靠度",
+      "inputs": ["query", "source_list", "search_params"],
+      "outputs": ["search_results", "summary", "source_report"],
+      "risk_level": "low",
+      "default_model": "deepseek/deepseek-v4-flash",
+      "can_execute": true,
+      "requires_approval": false,
+      "status": "active"
+    },
+    {
+      "id": "deep_research_tutor",
+      "name": "Deep Research Tutor",
+      "role": "深度研究与解读",
+      "responsibilities": "对前沿技术、复杂主题进行多源深度分析，生成结构化研究报告",
+      "inputs": ["topic", "context", "depth_level"],
+      "outputs": ["research_report", "knowledge_graph_entry", "summary"],
+      "risk_level": "low",
+      "default_model": "deepseek/deepseek-v4-pro",
+      "can_execute": true,
+      "requires_approval": false,
+      "status": "active"
+    },
+    {
+      "id": "goal_growth_planner",
+      "name": "Goal & Growth Planner",
+      "role": "成长规划",
+      "responsibilities": "制定个人成长计划，分解学习目标，跟踪进展，定期回顾调整",
+      "inputs": ["user_goal", "progress_data", "review_request"],
+      "outputs": ["growth_plan", "learning_card", "review_report"],
+      "risk_level": "low",
+      "default_model": "deepseek/deepseek-v4-pro",
+      "can_execute": false,
+      "requires_approval": false,
+      "status": "active"
+    },
+    {
+      "id": "career_asset_jd_agent",
+      "name": "Career Asset & JD Agent",
+      "role": "职业资产与求职",
+      "responsibilities": "管理简历、JD 匹配、职业资产库、机会池跟踪、求职表管理",
+      "inputs": ["resume", "jd", "career_update"],
+      "outputs": ["match_analysis", "opportunity_entry", "career_report"],
+      "risk_level": "high",
+      "default_model": "deepseek/deepseek-v4-pro",
+      "can_execute": false,
+      "requires_approval": true,
+      "status": "active"
+    }
+  ]
+}

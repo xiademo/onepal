@@ -1,0 +1,27 @@
+{
+  "version": "0.1",
+  "mode": "expanded_controlled",
+  "network": {
+    "enabled": true,
+    "allowed_domains": [
+      "api.github.com",
+      "github.com",
+      "raw.githubusercontent.com"
+    ]
+  },
+  "actions": {
+    "read_project_files": "allow",
+    "write_logs": "allow",
+    "write_memory_proposal": "allow",
+    "approve_memory": "approval",
+    "github_search": "allow",
+    "download_repo": "approval",
+    "install_markdown_skill": "approval",
+    "run_low_risk_feature": "allow",
+    "run_medium_risk_feature": "approval",
+    "run_high_risk_feature": "plan_only",
+    "execute_external_script": "deny",
+    "modify_system_env": "deny",
+    "delete_files": "approval"
+  }
+}

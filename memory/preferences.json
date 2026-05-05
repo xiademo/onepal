@@ -1,0 +1,19 @@
+{
+  "version": "0.1",
+  "preferences": [
+    {
+      "id": "pref_legacy_001",
+      "content": "用户希望先给出可执行步骤，而不是泛泛解释。",
+      "evidence": "旧项目 store.json 记录。用户多次要求一步一步落地。",
+      "source": "personal-assistant legacy",
+      "created_at": "2026-05-06T00:00:00+08:00"
+    },
+    {
+      "id": "pref_legacy_002",
+      "content": "用户喜欢结构化 prompt，模糊需求先被结构化再执行。",
+      "evidence": "从旧项目交互模式推断。AGENTS.md 要求 Think Before Coding。",
+      "source": "personal-assistant legacy",
+      "created_at": "2026-05-06T00:00:00+08:00"
+    }
+  ]
+}

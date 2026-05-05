@@ -1,0 +1,7 @@
+OpenCode/
+secrets/
+logs/
+__pycache__/
+*.key
+*.token
+*.env

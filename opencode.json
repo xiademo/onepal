@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "plan",
+  "agent": {
+    "plan": {
+      "model": "deepseek/deepseek-v4-pro",
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false
+      }
+    },
+    "build": {
+      "model": "deepseek/deepseek-v4-flash"
+    }
+  },
+  "share": "disabled",
+  "autoupdate": true
+}
