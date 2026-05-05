@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/permission_profile.schema.json",
+  "title": "Permission Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile_id",
+    "name",
+    "default_profile",
+    "permissions"
+  ],
+  "properties": {
+    "profile_id": {
+      "type": "string",
+      "enum": [
+        "safe_readonly",
+        "local_write_with_approval",
+        "automation_with_strict_approval",
+        "admin_break_glass"
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "default_profile": {
+      "type": "boolean"
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": [
+          "deny",
+          "allow",
+          "approval_required",
+          "explicit_user_confirmation_required",
+          "registered_action_only",
+          "registered_enabled_workflow_only",
+          "whitelist_only",
+          "break_glass_only"
+        ]
+      }
+    },
+    "requires_approval_for": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "max_risk_without_approval": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "none"
+      ]
+    },
+    "expires_at_required": {
+      "type": "boolean"
+    }
+  }
+}

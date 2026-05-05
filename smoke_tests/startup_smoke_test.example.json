@@ -1,0 +1,65 @@
+{
+  "smoke_test_id": "smoke_example_startup",
+  "profile": "prod-local",
+  "trigger": "startup",
+  "overall_status": "limited_ready",
+  "checks": [
+    {
+      "check_id": "dashboard_health",
+      "name": "Dashboard can open",
+      "severity": "critical",
+      "status": "passed",
+      "details_ref": null
+    },
+    {
+      "check_id": "api_health",
+      "name": "API returns /health",
+      "severity": "critical",
+      "status": "passed",
+      "details_ref": null
+    },
+    {
+      "check_id": "memory_index_readable",
+      "name": "Memory index readable",
+      "severity": "critical",
+      "status": "passed",
+      "details_ref": null
+    },
+    {
+      "check_id": "approval_queue_rw",
+      "name": "Approval queue readable/writable",
+      "severity": "critical",
+      "status": "passed",
+      "details_ref": null
+    },
+    {
+      "check_id": "logs_writable",
+      "name": "Logs writable",
+      "severity": "critical",
+      "status": "passed",
+      "details_ref": null
+    },
+    {
+      "check_id": "runtime_lock_normal",
+      "name": "Runtime lock normal",
+      "severity": "critical",
+      "status": "passed",
+      "details_ref": null
+    },
+    {
+      "check_id": "secrets_not_in_git",
+      "name": "Secrets not in Git",
+      "severity": "critical",
+      "status": "passed",
+      "details_ref": null
+    },
+    {
+      "check_id": "workflow_registry_parse",
+      "name": "Workflow Registry parse",
+      "severity": "warning",
+      "status": "skipped",
+      "details_ref": "n8n not configured in this local profile"
+    }
+  ],
+  "created_at": "2026-05-05T10:00:00"
+}

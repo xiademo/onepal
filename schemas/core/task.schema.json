@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/task.schema.json",
+  "title": "Task",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "title",
+    "task_type",
+    "status",
+    "priority",
+    "created_at"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "pattern": "^task_[a-zA-Z0-9_.-]+$"
+    },
+    "task_tree_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "parent_task_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "depth": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "title": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string"
+    },
+    "task_type": {
+      "type": "string"
+    },
+    "task_owner": {
+      "type": "string"
+    },
+    "owner_agent": {
+      "type": "string"
+    },
+    "assigned_agent": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "queued",
+        "running",
+        "waiting_approval",
+        "waiting_dependency",
+        "waiting_user_input",
+        "retrying",
+        "blocked",
+        "degraded",
+        "completed",
+        "failed",
+        "cancelled",
+        "archived"
+      ]
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "P0",
+        "P1",
+        "P2",
+        "P3"
+      ]
+    },
+    "input_summary": {
+      "type": "string"
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "expected_output": {
+      "type": "string"
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "children": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "action_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "input_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "output_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "completion_summary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    "token_budget": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "time_budget_seconds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stop_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "stop_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

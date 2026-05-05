@@ -1,0 +1,70 @@
+{
+  "version": "1.1.0",
+  "default_profile": "safe_readonly",
+  "profiles": [
+    {
+      "profile_id": "safe_readonly",
+      "name": "Safe Readonly",
+      "default_profile": true,
+      "permissions": {
+        "read_architecture": "allow",
+        "read_registry": "allow",
+        "generate_draft": "allow",
+        "dry_run": "allow",
+        "write_formal_state": "deny",
+        "run_workflow": "deny",
+        "external_effect": "deny",
+        "install_dependency": "deny"
+      },
+      "requires_approval_for": [
+        "local_write",
+        "state_mutation",
+        "automation",
+        "external_effect",
+        "deployment"
+      ],
+      "max_risk_without_approval": "R1",
+      "expires_at_required": false
+    },
+    {
+      "profile_id": "local_write_with_approval",
+      "name": "Local Write With Approval",
+      "default_profile": false,
+      "permissions": {
+        "read_architecture": "allow",
+        "write_local_draft": "allow",
+        "write_formal_state": "approval_required",
+        "run_workflow": "approval_required",
+        "external_effect": "explicit_user_confirmation_required",
+        "install_dependency": "approval_required"
+      },
+      "requires_approval_for": [
+        "state_mutation",
+        "external_effect",
+        "deployment",
+        "security_sensitive"
+      ],
+      "max_risk_without_approval": "R1",
+      "expires_at_required": true
+    },
+    {
+      "profile_id": "automation_with_strict_approval",
+      "name": "Automation With Strict Approval",
+      "default_profile": false,
+      "permissions": {
+        "write_local_draft": "registered_action_only",
+        "write_formal_state": "whitelist_only",
+        "run_workflow": "registered_enabled_workflow_only",
+        "external_effect": "deny",
+        "install_dependency": "deny"
+      },
+      "requires_approval_for": [
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "max_risk_without_approval": "R1",
+      "expires_at_required": true
+    }
+  ]
+}

@@ -1,0 +1,203 @@
+{
+  "version": "1.1.0",
+  "schemas": [
+    {
+      "schema_id": "action.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/action.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "action_execution.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/action_execution.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R3",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "agent.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/agent.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "approval_decision.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/approval_decision.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R3",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "document_packet.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/document_packet.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "evidence_pack.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/evidence_pack.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "handoff.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/handoff.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "memory_candidate.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/memory_candidate.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "permission_profile.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/permission_profile.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "proposal.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/proposal.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "research_packet.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/research_packet.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "runtime_service.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/runtime_service.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R3",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "skill.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/skill.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "smoke_test.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/smoke_test.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "source_evaluation.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/source_evaluation.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "state_transition.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/state_transition.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "subtask_request.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/subtask_request.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "task.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/task.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "task_tree.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/task_tree.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "tool_adapter.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/tool_adapter.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "workflow.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/workflow.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "workflow_run.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/workflow_run.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    }
+  ]
+}

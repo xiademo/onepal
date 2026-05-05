@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/action_execution.schema.json",
+  "title": "Action Execution",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action_execution_id",
+    "action_id",
+    "requester",
+    "status",
+    "started_at"
+  ],
+  "properties": {
+    "action_execution_id": {
+      "type": "string",
+      "pattern": "^actexec_[a-zA-Z0-9_.-]+$"
+    },
+    "action_id": {
+      "type": "string"
+    },
+    "requester": {
+      "type": "string"
+    },
+    "executor": {
+      "type": "string"
+    },
+    "input_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "output_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dry_run_result_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "approval_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "requested",
+        "registered_checked",
+        "permission_checked",
+        "schema_validated",
+        "waiting_approval",
+        "dry_run",
+        "executing",
+        "completed",
+        "failed",
+        "rollback_required",
+        "rolled_back",
+        "archived"
+      ]
+    },
+    "error_type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rollback_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "audit_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "ended_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/runtime_service.schema.json",
+  "title": "Runtime Service",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "service_id",
+    "name",
+    "type",
+    "host",
+    "port",
+    "profile",
+    "healthcheck",
+    "exposure",
+    "risk_level",
+    "enabled_status",
+    "lifecycle_status"
+  ],
+  "properties": {
+    "service_id": {
+      "type": "string",
+      "pattern": "^svc_[a-zA-Z0-9_.-]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "frontend",
+        "api",
+        "model",
+        "workflow",
+        "database",
+        "converter",
+        "adapter",
+        "other"
+      ]
+    },
+    "host": {
+      "type": "string"
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "profile": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "startup_command_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "shutdown_command_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "healthcheck": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dependency_type": {
+      "type": "string",
+      "enum": [
+        "hard_dependency",
+        "soft_dependency",
+        "optional_dependency"
+      ]
+    },
+    "exposure": {
+      "type": "string",
+      "enum": [
+        "local_only",
+        "lan",
+        "public"
+      ]
+    },
+    "owner_agent": {
+      "type": "string"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    "restart_policy": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "on_failure",
+        "always",
+        "disabled"
+      ]
+    },
+    "log_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "enabled_status": {
+      "type": "string",
+      "enum": [
+        "enabled",
+        "disabled"
+      ]
+    },
+    "lifecycle_status": {
+      "type": "string",
+      "enum": [
+        "registered",
+        "starting",
+        "healthy",
+        "degraded",
+        "unhealthy",
+        "stopping",
+        "stopped",
+        "failed"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "deprecated": true,
+      "description": "Compatibility-only field. Do not use for new implementations. Use lifecycle_status and enabled_status instead.",
+      "enum": [
+        "registered",
+        "starting",
+        "healthy",
+        "degraded",
+        "unhealthy",
+        "stopping",
+        "stopped",
+        "failed",
+        "enabled",
+        "disabled"
+      ]
+    }
+  }
+}

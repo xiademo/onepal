@@ -1,7 +1,30 @@
-OpenCode/
-secrets/
-logs/
+﻿# Python / Node common
 __pycache__/
+*.pyc
+node_modules/
+dist/
+build/
+
+# Local runtime state
+runtime/*.lock
+runtime/*.tmp
+runtime/smoke_tests.jsonl
+runtime/*.jsonl
+
+# Never commit private runtime data
+runtime-data-private/
+artifact-backup/
+
+# Local env / secrets
+.env
+.env.*
 *.key
-*.token
-*.env
+*.pem
+*.p12
+*.pfx
+secrets/
+tokens/
+credentials/
+
+# Runtime logs must not be committed
+logs/

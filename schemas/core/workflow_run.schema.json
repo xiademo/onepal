@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/workflow_run.schema.json",
+  "title": "Workflow Run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workflow_run_id",
+    "workflow_id",
+    "status",
+    "started_at"
+  ],
+  "properties": {
+    "workflow_run_id": {
+      "type": "string",
+      "pattern": "^wfrun_[a-zA-Z0-9_.-]+$"
+    },
+    "workflow_id": {
+      "type": "string"
+    },
+    "triggered_by": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "queued",
+        "preflight",
+        "running",
+        "succeeded",
+        "failed",
+        "paused",
+        "cancelled",
+        "timeout",
+        "archived",
+        "dead_letter"
+      ]
+    },
+    "input_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "output_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "error_type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "ended_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

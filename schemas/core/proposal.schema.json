@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/proposal.schema.json",
+  "title": "Proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "proposal_id",
+    "proposal_type",
+    "title",
+    "summary",
+    "risk_level",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "proposal_id": {
+      "type": "string",
+      "pattern": "^prop_[a-zA-Z0-9_.-]+$"
+    },
+    "proposal_type": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "source_agent": {
+      "type": "string"
+    },
+    "affected_modules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    "requires_approval": {
+      "type": "boolean",
+      "default": true
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending_review",
+        "approved",
+        "rejected",
+        "auto_rejected",
+        "expired",
+        "executing",
+        "completed",
+        "failed",
+        "cancelled",
+        "archived"
+      ]
+    },
+    "action_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "approval_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rollback_plan_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

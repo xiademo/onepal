@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/handoff.schema.json",
+  "title": "Handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "handoff_id",
+    "from_agent",
+    "to_agent",
+    "objective",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "handoff_id": {
+      "type": "string",
+      "pattern": "^handoff_[a-zA-Z0-9_.-]+$"
+    },
+    "from_agent": {
+      "type": "string"
+    },
+    "to_agent": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "objective": {
+      "type": "string"
+    },
+    "input_summary": {
+      "type": "string"
+    },
+    "expected_output": {
+      "type": "string"
+    },
+    "allowed_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "requested",
+        "accepted",
+        "rejected",
+        "running",
+        "returned",
+        "failed",
+        "archived"
+      ]
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "completed_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

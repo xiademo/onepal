@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/source_evaluation.schema.json",
+  "title": "Source Evaluation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_evaluation_id",
+    "source_ref",
+    "source_type",
+    "trust_level",
+    "freshness_status",
+    "created_at"
+  ],
+  "properties": {
+    "source_evaluation_id": {
+      "type": "string",
+      "pattern": "^srceval_[a-zA-Z0-9_.-]+$"
+    },
+    "source_ref": {
+      "type": "string"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "official",
+        "academic",
+        "news",
+        "blog",
+        "forum",
+        "github",
+        "job_posting",
+        "company_page",
+        "unknown"
+      ]
+    },
+    "trust_level": {
+      "type": "string",
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "unknown"
+      ]
+    },
+    "freshness_status": {
+      "type": "string",
+      "enum": [
+        "fresh",
+        "acceptable",
+        "stale",
+        "unknown"
+      ]
+    },
+    "valid_until": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "bias_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risk_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "citation_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "created_at": {
+      "type": "string"
+    }
+  }
+}

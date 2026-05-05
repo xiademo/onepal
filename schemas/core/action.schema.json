@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/action.schema.json",
+  "title": "Action",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action_id",
+    "name",
+    "category",
+    "owner_agent",
+    "permission_required",
+    "risk_level",
+    "state_mutation",
+    "external_effect",
+    "approval_required",
+    "audit_required",
+    "enabled"
+  ],
+  "properties": {
+    "action_id": {
+      "type": "string",
+      "pattern": "^action\\.[a-zA-Z0-9_.-]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "read_only",
+        "local_write",
+        "state_mutation",
+        "automation",
+        "external_effect",
+        "deployment",
+        "security_sensitive"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "owner_agent": {
+      "type": "string"
+    },
+    "executor": {
+      "type": "string"
+    },
+    "tool_adapter_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "tool_trust_level": {
+      "type": "string",
+      "enum": [
+        "trusted_internal_tool",
+        "local_sandbox_tool",
+        "read_only_external_tool",
+        "untrusted_external_tool",
+        "mcp_server_verified",
+        "mcp_server_unverified"
+      ]
+    },
+    "input_schema_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "output_schema_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "permission_required": {
+      "type": "string",
+      "enum": [
+        "safe_readonly",
+        "local_write_with_approval",
+        "automation_with_strict_approval",
+        "admin_break_glass"
+      ]
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    "state_mutation": {
+      "type": "boolean"
+    },
+    "external_effect": {
+      "type": "boolean"
+    },
+    "approval_required": {
+      "type": "boolean"
+    },
+    "two_step_confirmation_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "dry_run_supported": {
+      "type": "boolean",
+      "default": false
+    },
+    "rollback_supported": {
+      "type": "boolean",
+      "default": false
+    },
+    "idempotency_key_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "audit_required": {
+      "type": "boolean"
+    },
+    "allowed_profiles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_write_modes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "read_only",
+          "test_write",
+          "prod_write",
+          "recovery_write",
+          "initialization_write"
+        ]
+      }
+    },
+    "rate_limit": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "timeout_seconds": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "log_redaction_policy": {
+      "type": "string",
+      "enum": [
+        "none",
+        "reference_only",
+        "summary_only",
+        "full_redaction"
+      ]
+    },
+    "enabled": {
+      "type": "boolean"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state_mutation": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "input_schema_ref": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input_schema_ref"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "external_effect": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "input_schema_ref": {
+            "type": "string"
+          },
+          "two_step_confirmation_required": {
+            "const": true
+          }
+        },
+        "required": [
+          "input_schema_ref",
+          "two_step_confirmation_required"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "risk_level": {
+            "enum": [
+              "R2",
+              "R3",
+              "R4"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "input_schema_ref": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input_schema_ref"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/tool_adapter.schema.json",
+  "title": "Tool Adapter",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tool_adapter_id",
+    "name",
+    "trust_level",
+    "network_access",
+    "external_effect",
+    "enabled"
+  ],
+  "properties": {
+    "tool_adapter_id": {
+      "type": "string",
+      "pattern": "^tool_[a-zA-Z0-9_.-]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "trust_level": {
+      "type": "string",
+      "enum": [
+        "trusted_internal_tool",
+        "local_sandbox_tool",
+        "read_only_external_tool",
+        "untrusted_external_tool",
+        "mcp_server_verified",
+        "mcp_server_unverified"
+      ]
+    },
+    "network_access": {
+      "type": "boolean"
+    },
+    "file_read_scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "file_write_scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "external_effect": {
+      "type": "boolean"
+    },
+    "returns_prompt_like_content": {
+      "type": "boolean"
+    },
+    "can_register_tools": {
+      "type": "boolean"
+    },
+    "secret_access": {
+      "type": "boolean"
+    },
+    "allowed_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "denied_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "enabled": {
+      "type": "boolean"
+    }
+  }
+}

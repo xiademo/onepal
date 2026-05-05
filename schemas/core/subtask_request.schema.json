@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/subtask_request.schema.json",
+  "title": "Subtask Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "subtask_request_id",
+    "parent_task_id",
+    "to_agent",
+    "objective",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "subtask_request_id": {
+      "type": "string",
+      "pattern": "^subtaskreq_[a-zA-Z0-9_.-]+$"
+    },
+    "parent_task_id": {
+      "type": "string"
+    },
+    "from_agent": {
+      "type": "string"
+    },
+    "to_agent": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string"
+    },
+    "input_summary": {
+      "type": "string"
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "expected_output": {
+      "type": "string"
+    },
+    "allowed_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "requested",
+        "accepted",
+        "rejected",
+        "running",
+        "returned",
+        "failed",
+        "archived"
+      ]
+    },
+    "created_at": {
+      "type": "string"
+    }
+  }
+}

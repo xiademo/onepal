@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/evidence_pack.schema.json",
+  "title": "Evidence Pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "evidence_pack_id",
+    "topic",
+    "source_evaluation_refs",
+    "created_at"
+  ],
+  "properties": {
+    "evidence_pack_id": {
+      "type": "string",
+      "pattern": "^evpack_[a-zA-Z0-9_.-]+$"
+    },
+    "topic": {
+      "type": "string"
+    },
+    "source_evaluation_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "fact_claims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "inferences": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "quotes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "uncertainties": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contradictions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risk_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string"
+    }
+  }
+}

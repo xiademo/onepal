@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/workflow.schema.json",
+  "title": "Workflow",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workflow_id",
+    "name",
+    "owner_agent",
+    "enabled",
+    "risk_level",
+    "trigger_type",
+    "action_refs"
+  ],
+  "properties": {
+    "workflow_id": {
+      "type": "string",
+      "pattern": "^wf_[a-zA-Z0-9_.-]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "owner_agent": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    "trigger_type": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "scheduled",
+        "event",
+        "webhook"
+      ]
+    },
+    "schedule_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "action_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "required_secret_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_profiles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "approval_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "rate_limit": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "rollback_supported": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "paused",
+        "disabled",
+        "archived"
+      ]
+    }
+  }
+}

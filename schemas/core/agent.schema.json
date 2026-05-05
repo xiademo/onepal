@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/agent.schema.json",
+  "title": "Agent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "agent_id",
+    "name",
+    "role",
+    "source_of_truth",
+    "permission_profile_default",
+    "status"
+  ],
+  "properties": {
+    "agent_id": {
+      "type": "string",
+      "pattern": "^Agent_[1-9]$|^Coordinator$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string"
+    },
+    "source_of_truth": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbidden_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "permission_profile_default": {
+      "type": "string",
+      "enum": [
+        "safe_readonly",
+        "local_write_with_approval",
+        "automation_with_strict_approval"
+      ]
+    },
+    "context_budget_tokens": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "memory_top_k_default": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "deprecated"
+      ]
+    }
+  }
+}

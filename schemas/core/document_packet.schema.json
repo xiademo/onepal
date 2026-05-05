@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/document_packet.schema.json",
+  "title": "Document Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "document_packet_id",
+    "source_ref",
+    "source_type",
+    "trust_level",
+    "sensitivity",
+    "summary",
+    "created_at"
+  ],
+  "properties": {
+    "document_packet_id": {
+      "type": "string",
+      "pattern": "^docpkt_[a-zA-Z0-9_.-]+$"
+    },
+    "source_ref": {
+      "type": "string"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "file_upload",
+        "local_file",
+        "email",
+        "webpage",
+        "pdf",
+        "spreadsheet",
+        "image",
+        "other"
+      ]
+    },
+    "trust_level": {
+      "type": "string",
+      "enum": [
+        "trusted_user_provided",
+        "internal_private",
+        "external_untrusted",
+        "unknown"
+      ]
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": [
+        "public",
+        "internal",
+        "private",
+        "sensitive"
+      ]
+    },
+    "extracted_text_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "untrusted_instruction_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risk_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string"
+    }
+  }
+}

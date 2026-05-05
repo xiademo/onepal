@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/skill.schema.json",
+  "title": "Skill",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "skill_id",
+    "name",
+    "version",
+    "owner_agent",
+    "input_schema_ref",
+    "output_schema_ref",
+    "permission_required",
+    "risk_level",
+    "sandbox_status",
+    "enabled"
+  ],
+  "properties": {
+    "skill_id": {
+      "type": "string",
+      "pattern": "^skill_[a-zA-Z0-9_.-]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "owner_agent": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "trigger_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "input_schema_ref": {
+      "type": "string"
+    },
+    "output_schema_ref": {
+      "type": "string"
+    },
+    "required_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "permission_required": {
+      "type": "string",
+      "enum": [
+        "safe_readonly",
+        "local_write_with_approval",
+        "automation_with_strict_approval",
+        "admin_break_glass"
+      ]
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    "test_cases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "eval_metrics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sandbox_status": {
+      "type": "string",
+      "enum": [
+        "not_run",
+        "running",
+        "passed",
+        "failed"
+      ]
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "deprecated_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "version": "1.1.0",
+  "actions": [
+    {
+      "action_id": "action.read_architecture_doc",
+      "name": "Read Architecture Document",
+      "category": "read_only",
+      "description": "Read a non-sensitive architecture markdown file.",
+      "owner_agent": "Coordinator",
+      "executor": "file_reader",
+      "tool_adapter_ref": "tool_internal_file_reader",
+      "tool_trust_level": "trusted_internal_tool",
+      "input_schema_ref": null,
+      "output_schema_ref": null,
+      "permission_required": "safe_readonly",
+      "risk_level": "R1",
+      "state_mutation": false,
+      "external_effect": false,
+      "approval_required": false,
+      "two_step_confirmation_required": false,
+      "dry_run_supported": false,
+      "rollback_supported": false,
+      "idempotency_key_required": false,
+      "audit_required": true,
+      "allowed_profiles": [
+        "dev-local",
+        "test-local",
+        "prod-local",
+        "safe-mode"
+      ],
+      "allowed_write_modes": [
+        "read_only",
+        "test_write",
+        "prod_write",
+        "recovery_write"
+      ],
+      "rate_limit": {
+        "max_per_minute": 60
+      },
+      "timeout_seconds": 10,
+      "log_redaction_policy": "reference_only",
+      "enabled": true
+    },
+    {
+      "action_id": "action.update_memory_candidate",
+      "name": "Update Memory Candidate",
+      "category": "state_mutation",
+      "description": "Write an approved memory candidate into memory store.",
+      "owner_agent": "Agent_2",
+      "executor": "memory_service",
+      "tool_adapter_ref": "tool_internal_memory_service",
+      "tool_trust_level": "trusted_internal_tool",
+      "input_schema_ref": "schemas/core/memory_candidate.schema.json",
+      "output_schema_ref": null,
+      "permission_required": "local_write_with_approval",
+      "risk_level": "R2",
+      "state_mutation": true,
+      "external_effect": false,
+      "approval_required": true,
+      "two_step_confirmation_required": false,
+      "dry_run_supported": true,
+      "rollback_supported": true,
+      "idempotency_key_required": true,
+      "audit_required": true,
+      "allowed_profiles": [
+        "prod-local",
+        "safe-mode"
+      ],
+      "allowed_write_modes": [
+        "prod_write",
+        "recovery_write"
+      ],
+      "rate_limit": {
+        "max_per_hour": 30
+      },
+      "timeout_seconds": 30,
+      "log_redaction_policy": "reference_only",
+      "enabled": true
+    }
+  ]
+}

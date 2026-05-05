@@ -1,0 +1,118 @@
+{
+  "version": "1.1.0",
+  "state_machines": {
+    "proposal": [
+      "draft",
+      "pending_review",
+      "approved",
+      "rejected",
+      "auto_rejected",
+      "expired",
+      "executing",
+      "completed",
+      "failed",
+      "cancelled",
+      "archived"
+    ],
+    "approval_decision": [
+      "draft",
+      "pending_review",
+      "approved",
+      "rejected",
+      "expired",
+      "revoked",
+      "archived"
+    ],
+    "task": [
+      "draft",
+      "queued",
+      "running",
+      "waiting_approval",
+      "waiting_dependency",
+      "waiting_user_input",
+      "retrying",
+      "blocked",
+      "degraded",
+      "completed",
+      "failed",
+      "cancelled",
+      "archived"
+    ],
+    "task_tree": [
+      "draft",
+      "planned",
+      "queued",
+      "running",
+      "aggregating",
+      "completed",
+      "failed",
+      "cancelled",
+      "archived"
+    ],
+    "handoff": [
+      "requested",
+      "accepted",
+      "rejected",
+      "running",
+      "returned",
+      "failed",
+      "archived"
+    ],
+    "memory_candidate": [
+      "draft",
+      "pending_review",
+      "approved",
+      "rejected",
+      "merged",
+      "expired",
+      "writing",
+      "active",
+      "failed",
+      "archived",
+      "superseded"
+    ],
+    "workflow_run": [
+      "scheduled",
+      "queued",
+      "preflight",
+      "running",
+      "succeeded",
+      "failed",
+      "paused",
+      "cancelled",
+      "timeout",
+      "archived",
+      "dead_letter"
+    ],
+    "action_execution": [
+      "requested",
+      "registered_checked",
+      "permission_checked",
+      "schema_validated",
+      "waiting_approval",
+      "dry_run",
+      "executing",
+      "completed",
+      "failed",
+      "rollback_required",
+      "rolled_back",
+      "archived"
+    ],
+    "runtime_service": {
+      "lifecycle_status": [
+        "registered",
+        "starting",
+        "healthy",
+        "degraded",
+        "unhealthy",
+        "stopping",
+        "stopped",
+        "failed"
+      ],
+      "enabled_status": [
+        "enabled",
+        "disabled"
+      ]
+    }
+  }
+}

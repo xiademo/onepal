@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/state_transition.schema.json",
+  "title": "State Transition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "transition_id",
+    "object_id",
+    "object_type",
+    "from_status",
+    "to_status",
+    "actor",
+    "created_at"
+  ],
+  "properties": {
+    "transition_id": {
+      "type": "string"
+    },
+    "object_id": {
+      "type": "string"
+    },
+    "object_type": {
+      "type": "string",
+      "enum": [
+        "proposal",
+        "approval_decision",
+        "task",
+        "task_tree",
+        "subtask_request",
+        "handoff",
+        "memory_candidate",
+        "workflow_run",
+        "action_execution",
+        "runtime_service",
+        "skill",
+        "document_packet",
+        "research_packet",
+        "source_evaluation",
+        "evidence_pack"
+      ]
+    },
+    "from_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "to_status": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "guard_result": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "created_at": {
+      "type": "string"
+    }
+  }
+}

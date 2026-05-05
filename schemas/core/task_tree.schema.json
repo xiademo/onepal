@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/task_tree.schema.json",
+  "title": "Task Tree",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_tree_id",
+    "root_task_id",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "task_tree_id": {
+      "type": "string",
+      "pattern": "^tree_[a-zA-Z0-9_.-]+$"
+    },
+    "root_task_id": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string"
+    },
+    "owner_agent": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "planned",
+        "queued",
+        "running",
+        "aggregating",
+        "completed",
+        "failed",
+        "cancelled",
+        "archived"
+      ]
+    },
+    "task_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "handoff_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "max_depth": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

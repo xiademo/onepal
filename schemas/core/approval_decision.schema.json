@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-workbench.local/schemas/core/approval_decision.schema.json",
+  "title": "Approval Decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "approval_decision_id",
+    "approval_scope",
+    "approver",
+    "status",
+    "created_at",
+    "expires_at"
+  ],
+  "properties": {
+    "approval_decision_id": {
+      "type": "string",
+      "pattern": "^approval_[a-zA-Z0-9_.-]+$"
+    },
+    "proposal_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "action_execution_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "approver": {
+      "type": "string"
+    },
+    "approval_scope": {
+      "type": "string"
+    },
+    "allowed_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "denied_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "data_boundary": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "write_boundary": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "max_runs": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "max_cost": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "max_external_calls": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "one_time_only": {
+      "type": "boolean",
+      "default": false
+    },
+    "revocation_allowed": {
+      "type": "boolean",
+      "default": true
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending_review",
+        "approved",
+        "rejected",
+        "expired",
+        "revoked",
+        "archived"
+      ]
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "expires_at": {
+      "type": "string"
+    }
+  }
+}
