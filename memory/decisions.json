@@ -1,12 +1,23 @@
-{
-  "version": "0.1",
+﻿{
+  "version": "0.1.1",
+  "source": "legacy_p0_cleaned",
+  "note": "Cleaned legacy memory decisions. Formal architecture decisions should be derived from docs/freeze/AI_Workbench_Architecture_Freeze_v0.1.1-final.md.",
   "decisions": [
     {
       "id": "decision_legacy_001",
-      "content": "主系统选择 OpenCode Desktop + DeepSeek V4 API，暂不引入 Hermes、GenericAgent、DeepTutor 作为主系统。",
-      "evidence": "OnePal 从 personal-assistant 归档重启而来，沿用相同架构决策。旧项目 store.json 记录。",
-      "source": "personal-assistant legacy",
-      "created_at": "2026-05-06T00:00:00+08:00"
+      "content": "OnePal 采用 OpenCode Desktop + DeepSeek V4 API 作为当前主架构基线。旧 personal-assistant 仅作为归档参考，不继续作为新开发根目录。",
+      "evidence": "Architecture Freeze v0.1.1-final and Task 01 migration decision.",
+      "source": "legacy_cleanup_task_01_5",
+      "created_at": "2026-05-06T00:00:00+08:00",
+      "status": "active"
+    },
+    {
+      "id": "decision_legacy_002",
+      "content": "OnePal 当前实现以 docs/freeze/AI_Workbench_Architecture_Freeze_v0.1.1-final.md 为唯一架构 source of truth。",
+      "evidence": "Task 01 commit 545f3db: docs(freeze): add OnePal architecture freeze v0.1.1.",
+      "source": "legacy_cleanup_task_01_5",
+      "created_at": "2026-05-06T00:00:00+08:00",
+      "status": "active"
     }
   ]
 }

@@ -1,19 +1,31 @@
-{
-  "version": "0.1",
+﻿{
+  "version": "0.1.1",
+  "source": "legacy_p0_cleaned",
+  "note": "Cleaned legacy user preferences. New long-term memory writes must use Memory Candidate and approval flow.",
   "preferences": [
     {
       "id": "pref_legacy_001",
-      "content": "用户希望先给出可执行步骤，而不是泛泛解释。",
-      "evidence": "旧项目 store.json 记录。用户多次要求一步一步落地。",
-      "source": "personal-assistant legacy",
-      "created_at": "2026-05-06T00:00:00+08:00"
+      "content": "用户偏好先给出可执行步骤，而不是泛泛解释。",
+      "evidence": "Repeated project setup interactions and OnePal task execution style.",
+      "source": "legacy_cleanup_task_01_5",
+      "created_at": "2026-05-06T00:00:00+08:00",
+      "status": "active"
     },
     {
       "id": "pref_legacy_002",
-      "content": "用户喜欢结构化 prompt，模糊需求先被结构化再执行。",
-      "evidence": "从旧项目交互模式推断。AGENTS.md 要求 Think Before Coding。",
-      "source": "personal-assistant legacy",
-      "created_at": "2026-05-06T00:00:00+08:00"
+      "content": "用户偏好结构化 prompt 和分步骤落地；模糊需求应先结构化，再执行。",
+      "evidence": "Architecture Freeze v0.1.1-final and project interaction pattern.",
+      "source": "legacy_cleanup_task_01_5",
+      "created_at": "2026-05-06T00:00:00+08:00",
+      "status": "active"
+    },
+    {
+      "id": "pref_legacy_003",
+      "content": "用户偏好先完成验收、提交和回滚边界，再进入下一阶段开发。",
+      "evidence": "OnePal Task 01 migration and commit workflow.",
+      "source": "legacy_cleanup_task_01_5",
+      "created_at": "2026-05-06T00:00:00+08:00",
+      "status": "active"
     }
   ]
 }
