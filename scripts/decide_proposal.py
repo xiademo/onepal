@@ -18,7 +18,7 @@ from pathlib import Path
 from uuid import uuid4
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-APPROVALS_LOG = PROJECT_ROOT / "runtime" / "approvals" / "approval_decisions.jsonl"
+DEFAULT_APPROVALS = PROJECT_ROOT / "runtime" / "approvals" / "approval_decisions.jsonl"
 PROPOSALS_LOG = PROJECT_ROOT / "runtime" / "approvals" / "proposals.jsonl"
 AUDIT_LOG = PROJECT_ROOT / "runtime" / "audit" / "state_mutation_audit.jsonl"
 
@@ -59,13 +59,19 @@ def main():
     parser.add_argument("--actor", default="user", help="Actor making the decision")
     parser.add_argument("--expires", default=None, help="Expiry timestamp (ISO8601)")
     parser.add_argument("--create-fixture", action="store_true", help="Create a test proposal fixture")
+    parser.add_argument("--proposals-log", default=None, help="Path to proposals.jsonl (for test isolation)")
+    parser.add_argument("--approvals-log", default=None, help="Path to approval_decisions.jsonl (for test isolation)")
+    parser.add_argument("--audit-log", default=None, help="Path to state_mutation_audit.jsonl (for test isolation)")
     args = parser.parse_args()
+
+    proposals_path = Path(args.proposals_log) if args.proposals_log else PROPOSALS_LOG
+    approvals_path = Path(args.approvals_log) if args.approvals_log else DEFAULT_APPROVALS
+    audit_path = Path(args.audit_log) if args.audit_log else AUDIT_LOG
 
     # === Fixture creation mode ===
     if args.create_fixture:
         prop_id = args.proposal
-        # Check if proposal already exists
-        proposals = load_jsonl(PROPOSALS_LOG)
+        proposals = load_jsonl(proposals_path)
         existing = [p for p in proposals if p.get("proposal_id") == prop_id]
         if existing:
             print(json.dumps({"status": "error", "reason": f"proposal '{prop_id}' already exists"}, ensure_ascii=False))
@@ -81,7 +87,7 @@ def main():
             "status": "pending_review",
             "created_at": now_iso(),
         }
-        append_jsonl(PROPOSALS_LOG, proposal)
+        append_jsonl(proposals_path, proposal)
         print(json.dumps({"status": "created", "proposal": proposal}, indent=2, ensure_ascii=False))
         sys.exit(0)
 
@@ -91,7 +97,7 @@ def main():
         sys.exit(1)
 
     # === Load existing proposal ===
-    proposals = load_jsonl(PROPOSALS_LOG)
+    proposals = load_jsonl(proposals_path)
     target_idx = None
     target_proposal = None
     for idx, p in enumerate(proposals):
@@ -134,14 +140,14 @@ def main():
         "revocation_allowed": True,
         "one_time_only": True,
     }
-    append_jsonl(APPROVALS_LOG, approval)
+    append_jsonl(approvals_path, approval)
 
     # === Update proposal status ===
     new_status = "approved" if args.decision == "approved" else "rejected"
     proposals[target_idx]["status"] = new_status
     proposals[target_idx]["updated_at"] = now_iso()
     proposals[target_idx]["approval_ref"] = approval_id
-    write_jsonl(PROPOSALS_LOG, proposals)
+    write_jsonl(proposals_path, proposals)
 
     # === Write audit ===
     audit_entry = {
@@ -154,7 +160,7 @@ def main():
         "reason": f"Proposal decided as {args.decision} (approval: {approval_id})",
         "created_at": now_iso(),
     }
-    append_jsonl(AUDIT_LOG, audit_entry)
+    append_jsonl(audit_path, audit_entry)
 
     result = {
         "status": "success",

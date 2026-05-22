@@ -60,11 +60,15 @@ def main():
     parser = argparse.ArgumentParser(description="OnePal Permission Check")
     parser.add_argument("--action", required=True, help="Action ID (e.g. action.read_file)")
     parser.add_argument("--profile", required=True, help="Profile ID (e.g. safe_readonly)")
+    parser.add_argument("--registry", default=None, help="Path to action_registry.json (default: registries/action_registry.json)")
+    parser.add_argument("--profiles", default=None, help="Path to permission_profiles.json (default: policies/permission_profiles.json)")
     args = parser.parse_args()
 
-    # Load data
-    registry = load_json(ACTION_REGISTRY)
-    profiles_data = load_json(PERMISSION_PROFILES)
+    registry_path = Path(args.registry) if args.registry else ACTION_REGISTRY
+    profiles_path = Path(args.profiles) if args.profiles else PERMISSION_PROFILES
+
+    registry = load_json(registry_path)
+    profiles_data = load_json(profiles_path)
 
     action = find_action(registry, args.action)
     profile = find_profile(profiles_data, args.profile)

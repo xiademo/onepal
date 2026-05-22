@@ -13,6 +13,8 @@ runtime/*.lock
 runtime/*.tmp
 runtime/smoke_tests.jsonl
 runtime/*.jsonl
+runtime/**/*.jsonl
+runtime/**/test_*.jsonl
 
 # Never commit private runtime data
 runtime-data-private/
