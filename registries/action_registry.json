@@ -1,0 +1,181 @@
+{
+  "version": "1.1.0",
+  "actions": [
+    {
+      "action_id": "action.read_file",
+      "name": "Read Project File",
+      "category": "read_only",
+      "description": "Read a non-sensitive file within the OnePal project directory. No write or external network access.",
+      "owner_agent": "coordinator",
+      "executor": "file_reader",
+      "tool_adapter_ref": null,
+      "tool_trust_level": "trusted_internal_tool",
+      "input_schema_ref": null,
+      "output_schema_ref": null,
+      "permission_required": "safe_readonly",
+      "risk_level": "R0",
+      "state_mutation": false,
+      "external_effect": false,
+      "approval_required": false,
+      "two_step_confirmation_required": false,
+      "dry_run_supported": true,
+      "rollback_supported": false,
+      "idempotency_key_required": false,
+      "audit_required": false,
+      "allowed_profiles": [
+        "safe_readonly",
+        "local_write_with_approval"
+      ],
+      "allowed_write_modes": [
+        "read_only"
+      ],
+      "rate_limit": {
+        "max_per_minute": 120
+      },
+      "timeout_seconds": 10,
+      "log_redaction_policy": "reference_only",
+      "enabled": true
+    },
+    {
+      "action_id": "action.create_proposal",
+      "name": "Create Proposal",
+      "category": "local_write",
+      "description": "Create a new proposal for review. Proposals are written to proposals.jsonl and await approval decision.",
+      "owner_agent": "coordinator",
+      "executor": "proposal_service",
+      "tool_adapter_ref": null,
+      "tool_trust_level": "trusted_internal_tool",
+      "input_schema_ref": null,
+      "output_schema_ref": null,
+      "permission_required": "safe_readonly",
+      "risk_level": "R1",
+      "state_mutation": false,
+      "external_effect": false,
+      "approval_required": false,
+      "two_step_confirmation_required": false,
+      "dry_run_supported": true,
+      "rollback_supported": false,
+      "idempotency_key_required": false,
+      "audit_required": true,
+      "allowed_profiles": [
+        "safe_readonly",
+        "local_write_with_approval"
+      ],
+      "allowed_write_modes": [
+        "test_write",
+        "prod_write"
+      ],
+      "rate_limit": {
+        "max_per_minute": 30
+      },
+      "timeout_seconds": 30,
+      "log_redaction_policy": "reference_only",
+      "enabled": true
+    },
+    {
+      "action_id": "action.approve_proposal",
+      "name": "Approve Proposal",
+      "category": "security_sensitive",
+      "description": "Approve a pending proposal. Requires an active approval decision. This action mutates proposal state and writes an audit entry.",
+      "owner_agent": "coordinator",
+      "executor": "approval_service",
+      "tool_adapter_ref": null,
+      "tool_trust_level": "trusted_internal_tool",
+      "input_schema_ref": "schemas/core/approval_decision.schema.json",
+      "output_schema_ref": null,
+      "permission_required": "local_write_with_approval",
+      "risk_level": "R2",
+      "state_mutation": true,
+      "external_effect": false,
+      "approval_required": true,
+      "two_step_confirmation_required": false,
+      "dry_run_supported": false,
+      "rollback_supported": true,
+      "idempotency_key_required": true,
+      "audit_required": true,
+      "allowed_profiles": [
+        "local_write_with_approval"
+      ],
+      "allowed_write_modes": [
+        "prod_write",
+        "recovery_write"
+      ],
+      "rate_limit": {
+        "max_per_hour": 20
+      },
+      "timeout_seconds": 30,
+      "log_redaction_policy": "reference_only",
+      "enabled": true
+    },
+    {
+      "action_id": "action.reject_proposal",
+      "name": "Reject Proposal",
+      "category": "security_sensitive",
+      "description": "Reject a pending proposal. Marks the proposal as rejected and writes an audit entry.",
+      "owner_agent": "coordinator",
+      "executor": "approval_service",
+      "tool_adapter_ref": null,
+      "tool_trust_level": "trusted_internal_tool",
+      "input_schema_ref": "schemas/core/approval_decision.schema.json",
+      "output_schema_ref": null,
+      "permission_required": "local_write_with_approval",
+      "risk_level": "R2",
+      "state_mutation": true,
+      "external_effect": false,
+      "approval_required": true,
+      "two_step_confirmation_required": false,
+      "dry_run_supported": false,
+      "rollback_supported": true,
+      "idempotency_key_required": true,
+      "audit_required": true,
+      "allowed_profiles": [
+        "local_write_with_approval"
+      ],
+      "allowed_write_modes": [
+        "prod_write",
+        "recovery_write"
+      ],
+      "rate_limit": {
+        "max_per_hour": 20
+      },
+      "timeout_seconds": 30,
+      "log_redaction_policy": "reference_only",
+      "enabled": true
+    },
+    {
+      "action_id": "action.archive_proposal",
+      "name": "Archive Proposal",
+      "category": "state_mutation",
+      "description": "Archive a completed, rejected, or expired proposal. Writes a state mutation audit entry.",
+      "owner_agent": "coordinator",
+      "executor": "proposal_service",
+      "tool_adapter_ref": null,
+      "tool_trust_level": "trusted_internal_tool",
+      "input_schema_ref": null,
+      "output_schema_ref": null,
+      "permission_required": "local_write_with_approval",
+      "risk_level": "R1",
+      "state_mutation": true,
+      "external_effect": false,
+      "approval_required": false,
+      "two_step_confirmation_required": false,
+      "dry_run_supported": true,
+      "rollback_supported": false,
+      "idempotency_key_required": false,
+      "audit_required": true,
+      "allowed_profiles": [
+        "local_write_with_approval"
+      ],
+      "allowed_write_modes": [
+        "prod_write",
+        "recovery_write"
+      ],
+      "rate_limit": {
+        "max_per_hour": 50
+      },
+      "timeout_seconds": 15,
+      "log_redaction_policy": "reference_only",
+      "enabled": true
+    }
+  ]
+}

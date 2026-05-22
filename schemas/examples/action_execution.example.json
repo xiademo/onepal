@@ -1,0 +1,12 @@
+{
+  "version": "0.1.0",
+  "example_of": "action_execution.schema.json",
+  "data": {
+    "action_execution_id": "actexec_example_001",
+    "action_id": "action.read_file",
+    "requester": "coordinator",
+    "status": "completed",
+    "started_at": "2026-05-22T14:00:00Z",
+    "ended_at": "2026-05-22T14:00:05Z"
+  }
+}

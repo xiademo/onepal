@@ -1,0 +1,46 @@
+{
+  "version": "1.1.0",
+  "default_profile": "safe_readonly",
+  "profiles": [
+    {
+      "profile_id": "safe_readonly",
+      "name": "Safe Read-Only",
+      "default_profile": true,
+      "permissions": {
+        "action.read_file": "allow",
+        "action.create_proposal": "allow",
+        "action.approve_proposal": "deny",
+        "action.reject_proposal": "deny",
+        "action.archive_proposal": "deny"
+      },
+      "requires_approval_for": [
+        "state_mutation",
+        "external_effect",
+        "deployment",
+        "security_sensitive"
+      ],
+      "max_risk_without_approval": "R1",
+      "expires_at_required": false
+    },
+    {
+      "profile_id": "local_write_with_approval",
+      "name": "Local Write With Approval",
+      "default_profile": false,
+      "permissions": {
+        "action.read_file": "allow",
+        "action.create_proposal": "allow",
+        "action.approve_proposal": "approval_required",
+        "action.reject_proposal": "approval_required",
+        "action.archive_proposal": "allow"
+      },
+      "requires_approval_for": [
+        "state_mutation",
+        "external_effect",
+        "deployment",
+        "security_sensitive"
+      ],
+      "max_risk_without_approval": "R1",
+      "expires_at_required": true
+    }
+  ]
+}

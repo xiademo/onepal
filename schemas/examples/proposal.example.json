@@ -1,0 +1,15 @@
+{
+  "version": "0.1.0",
+  "example_of": "proposal.schema.json",
+  "data": {
+    "proposal_id": "prop_example_001",
+    "proposal_type": "memory_update",
+    "title": "Add Workflow Preference to Memory",
+    "summary": "Propose storing the user's preference for structured prompts with verification steps as a long-term memory entry.",
+    "source_agent": "memory_curator",
+    "risk_level": "R1",
+    "requires_approval": true,
+    "status": "pending_review",
+    "created_at": "2026-05-22T14:00:00Z"
+  }
+}
