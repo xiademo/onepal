@@ -1,0 +1,101 @@
+{
+  "version": "1.0.0",
+  "services": [
+    {
+      "service_id": "svc_schema_registry",
+      "name": "Schema Registry Validation",
+      "type": "other",
+      "description": "Validates all core JSON schemas via ajv compile. Critical for governance integrity.",
+      "host": "local",
+      "port": 1,
+      "profile": ["local"],
+      "healthcheck": {
+        "method": "script",
+        "command": "powershell -ExecutionPolicy Bypass -File scripts\\validate_schema_registry.ps1",
+        "success_exit_code": 0,
+        "timeout_seconds": 120
+      },
+      "dependencies": [],
+      "dependency_type": "hard_dependency",
+      "exposure": "local_only",
+      "owner_agent": "coordinator",
+      "risk_level": "R1",
+      "restart_policy": "manual",
+      "log_path": null,
+      "enabled_status": "enabled",
+      "lifecycle_status": "registered",
+      "critical": true
+    },
+    {
+      "service_id": "svc_governance_smoke_test",
+      "name": "Governance Smoke Test",
+      "type": "other",
+      "description": "Runs T1-T12 governance loop tests. Validates action/permission/approval closed loop.",
+      "host": "local",
+      "port": 1,
+      "profile": ["local"],
+      "healthcheck": {
+        "method": "script",
+        "command": "py scripts\\run_governance_smoke_test.py",
+        "success_exit_code": 0,
+        "timeout_seconds": 120
+      },
+      "dependencies": ["svc_schema_registry"],
+      "dependency_type": "hard_dependency",
+      "exposure": "local_only",
+      "owner_agent": "coordinator",
+      "risk_level": "R1",
+      "restart_policy": "manual",
+      "log_path": null,
+      "enabled_status": "enabled",
+      "lifecycle_status": "registered",
+      "critical": true
+    },
+    {
+      "service_id": "svc_action_registry",
+      "name": "Action Registry File",
+      "type": "other",
+      "description": "Action registry file (registries/action_registry.json). Must be present and parseable.",
+      "host": "local",
+      "port": 1,
+      "profile": ["local"],
+      "healthcheck": {
+        "method": "file_exists",
+        "path": "registries/action_registry.json"
+      },
+      "dependencies": ["svc_schema_registry"],
+      "dependency_type": "soft_dependency",
+      "exposure": "local_only",
+      "owner_agent": "coordinator",
+      "risk_level": "R1",
+      "restart_policy": "manual",
+      "log_path": null,
+      "enabled_status": "enabled",
+      "lifecycle_status": "registered",
+      "critical": true
+    },
+    {
+      "service_id": "svc_permission_profiles",
+      "name": "Permission Profiles File",
+      "type": "other",
+      "description": "Permission profiles file (policies/permission_profiles.json). Must be present and parseable.",
+      "host": "local",
+      "port": 1,
+      "profile": ["local"],
+      "healthcheck": {
+        "method": "file_exists",
+        "path": "policies/permission_profiles.json"
+      },
+      "dependencies": [],
+      "dependency_type": "soft_dependency",
+      "exposure": "local_only",
+      "owner_agent": "coordinator",
+      "risk_level": "R1",
+      "restart_policy": "manual",
+      "log_path": null,
+      "enabled_status": "enabled",
+      "lifecycle_status": "registered",
+      "critical": true
+    }
+  ]
+}

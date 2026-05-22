@@ -15,6 +15,10 @@ runtime/smoke_tests.jsonl
 runtime/*.jsonl
 runtime/**/*.jsonl
 runtime/**/test_*.jsonl
+runtime/health_status.json
+runtime/runtime_lock.json
+runtime/write_mode.json
+runtime/smoke_tests/*.jsonl
 
 # Never commit private runtime data
 runtime-data-private/
