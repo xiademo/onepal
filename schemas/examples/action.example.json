@@ -1,0 +1,18 @@
+{
+  "version": "0.1.0",
+  "example_of": "action.schema.json",
+  "data": {
+    "action_id": "action.read_project_file",
+    "name": "Read Project File",
+    "category": "read_only",
+    "description": "Read any file within the OnePal project directory for analysis and review. No write or external network access.",
+    "owner_agent": "coordinator",
+    "permission_required": "safe_readonly",
+    "risk_level": "R0",
+    "state_mutation": false,
+    "external_effect": false,
+    "approval_required": false,
+    "audit_required": false,
+    "enabled": true
+  }
+}

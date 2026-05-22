@@ -1,0 +1,14 @@
+{
+  "version": "0.1.0",
+  "example_of": "permission_profile.schema.json",
+  "data": {
+    "profile_id": "safe_readonly",
+    "name": "Safe Read-Only Profile",
+    "default_profile": true,
+    "permissions": {
+      "read_project_files": "allow",
+      "github_search": "allow",
+      "delete_files": "deny"
+    }
+  }
+}

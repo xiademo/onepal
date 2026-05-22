@@ -1,4 +1,4 @@
-﻿{
+{
   "version": "0.1.1",
   "source": "legacy_p0_cleaned",
   "note": "Cleaned legacy memory decisions. Formal architecture decisions should be derived from docs/freeze/AI_Workbench_Architecture_Freeze_v0.1.1-final.md.",

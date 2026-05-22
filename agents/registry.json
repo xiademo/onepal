@@ -1,4 +1,4 @@
-﻿{
+{
   "version": "0.1.1",
   "source": "legacy_p0_cleaned",
   "note": "Cleaned legacy OnePal agent registry. Architecture source of truth is docs/freeze/AI_Workbench_Architecture_Freeze_v0.1.1-final.md.",

@@ -1,0 +1,26 @@
+{
+  "version": "0.1.0",
+  "example_of": "runtime_service.schema.json",
+  "data": {
+    "service_id": "svc_example_local_api",
+    "name": "Example Local API Service",
+    "type": "api",
+    "host": "127.0.0.1",
+    "port": 8080,
+    "profile": [
+      "safe_readonly"
+    ],
+    "healthcheck": {
+      "endpoint": "/health",
+      "interval_seconds": 30,
+      "timeout_seconds": 5
+    },
+    "dependencies": [],
+    "dependency_type": "soft_dependency",
+    "exposure": "local_only",
+    "risk_level": "R0",
+    "restart_policy": "on_failure",
+    "enabled_status": "disabled",
+    "lifecycle_status": "registered"
+  }
+}

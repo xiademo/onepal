@@ -1,4 +1,4 @@
-﻿{
+{
   "version": "0.1.1",
   "source": "legacy_p0_cleaned",
   "note": "Cleaned legacy user preferences. New long-term memory writes must use Memory Candidate and approval flow.",
