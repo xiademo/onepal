@@ -1,6 +1,68 @@
 {
-  "version": "0.1",
-  "routes": [
+  "version": "0.2",
+  "mode": "deterministic",
+  "default_route": {
+    "agent": "coordinator",
+    "route_to": "coordinator_review",
+    "risk_level": "R1",
+    "execution_type": "review",
+    "requires_manual_review": true
+  },
+  "command_routes": [
+    {
+      "intent": "run_startup_smoke_test",
+      "patterns": ["*health*", "*smoke*test*", "*startup*", "*check*system*"],
+      "route_to": "runtime",
+      "risk_level": "R0",
+      "owner_agent": "coordinator",
+      "execution_type": "script_ref",
+      "script_ref": "scripts/run_startup_smoke_test.py",
+      "action_ref": null,
+      "requires_approval": false,
+      "requires_manual_review": false,
+      "description": "Run the startup smoke test to check system health"
+    },
+    {
+      "intent": "check_governance",
+      "patterns": ["*governance*", "*test*governance*", "*check*permission*", "*verify*action*"],
+      "route_to": "governance",
+      "risk_level": "R0",
+      "owner_agent": "coordinator",
+      "execution_type": "script_ref",
+      "script_ref": "scripts/run_governance_smoke_test.py",
+      "action_ref": null,
+      "requires_approval": false,
+      "requires_manual_review": false,
+      "description": "Run governance smoke tests (T1-T12)"
+    },
+    {
+      "intent": "create_proposal",
+      "patterns": ["*propose*", "*suggest*", "*create*proposal*", "*new*proposal*", "*make*proposal*"],
+      "route_to": "governance",
+      "risk_level": "R1",
+      "owner_agent": "coordinator",
+      "execution_type": "action_ref",
+      "script_ref": null,
+      "action_ref": "action.create_proposal",
+      "requires_approval": false,
+      "requires_manual_review": false,
+      "description": "Create a new governance proposal"
+    },
+    {
+      "intent": "read_project_file",
+      "patterns": ["*read*file*", "*show*file*", "*view*file*", "*cat*"],
+      "route_to": "governance",
+      "risk_level": "R0",
+      "owner_agent": "coordinator",
+      "execution_type": "action_ref",
+      "script_ref": null,
+      "action_ref": "action.read_file",
+      "requires_approval": false,
+      "requires_manual_review": false,
+      "description": "Read a project file safely"
+    }
+  ],
+  "agent_routes": [
     {"intent_pattern": "code*", "agent": "opencode_builder", "priority": 1},
     {"intent_pattern": "dashboard*", "agent": "opencode_builder", "priority": 1},
     {"intent_pattern": "api*", "agent": "opencode_builder", "priority": 1},

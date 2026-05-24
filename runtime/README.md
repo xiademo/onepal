@@ -10,7 +10,10 @@ runtime/
 ├── actions/               # 动作执行记录 (JSONL)
 ├── approvals/             # 提案与审批决定 (JSONL)
 ├── audit/                 # 状态变更审计 (JSONL)
-├── task_trees/            # 任务树运行时状态
+├── commands/              # 命令请求记录 (JSONL)
+├── routing/               # 路由决策记录 (JSONL)
+├── tasks/                 # 任务与任务树记录 (JSONL)
+├── task_trees/            # 任务树运行时状态（兼容保留）
 ├── smoke_tests/           # 启动烟雾测试输出 (JSONL)
 ├── health_status.json     # 系统健康状态快照
 ├── runtime_lock.json      # 运行时锁（手动创建）

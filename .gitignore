@@ -19,6 +19,9 @@ runtime/health_status.json
 runtime/runtime_lock.json
 runtime/write_mode.json
 runtime/smoke_tests/*.jsonl
+runtime/commands/*.jsonl
+runtime/routing/*.jsonl
+runtime/tasks/*.jsonl
 
 # Never commit private runtime data
 runtime-data-private/
@@ -36,4 +39,11 @@ tokens/
 credentials/
 
 # Runtime logs must not be committed
-logs/
+logs/*.jsonl
+logs/**/*.jsonl
+logs/rebuild_report_*.md
+logs/errors.jsonl
+logs/timeline.jsonl
+logs/mas_trace.jsonl
+logs/runtime/
+
