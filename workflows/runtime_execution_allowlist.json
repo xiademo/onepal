@@ -1,0 +1,21 @@
+{
+  "version": "0.1",
+  "description": "Controlled execution allowlist for Runtime Runner. Only scripts and actions listed here may be executed by the runner.",
+  "allowed_scripts": [
+    "scripts/run_startup_smoke_test.py",
+    "scripts/run_governance_smoke_test.py"
+  ],
+  "allowed_actions": [
+    "action.read_file",
+    "action.create_proposal"
+  ],
+  "forbidden_extensions": [".ps1", ".bat", ".exe", ".sh", ".cmd", ".vbs"],
+  "forbidden_paths": [
+    "OpenCode/",
+    "../",
+    "secrets/",
+    ".env"
+  ],
+  "max_runtime_seconds": 300,
+  "default_dry_run": true
+}

@@ -1,0 +1,18 @@
+{
+  "version": "0.1.0",
+  "note": "Draft example for future task_run schema. No core schema exists yet.",
+  "data": {
+    "task_run_id": "taskrun_example_001",
+    "task_id": "task_example_001",
+    "task_tree_id": "tree_example_001",
+    "command_id": "cmd_example_001",
+    "execution_type": "script_ref",
+    "script_ref": "scripts/run_startup_smoke_test.py",
+    "status": "completed",
+    "dry_run": true,
+    "exit_code": 0,
+    "started_at": "2026-05-24T18:00:00Z",
+    "completed_at": "2026-05-24T18:00:05Z",
+    "created_at": "2026-05-24T18:00:00Z"
+  }
+}

@@ -127,13 +127,16 @@ def create_gateway_objects(command_text, route, args, **paths):
     task = {
         "task_id": task_id,
         "task_tree_id": tree_id,
+        "command_id": command_id,
         "title": command_text[:120],
         "task_type": "command",
         "status": task_status,
         "priority": "P2",
         "owner_agent": route.get("owner_agent", "coordinator"),
         "risk_level": risk,
+        "execution_type": exec_type,
         "action_refs": [route["action_ref"]] if route.get("action_ref") else [],
+        "script_ref": route.get("script_ref"),
         "created_at": ts,
         "updated_at": None,
     }

@@ -1,4 +1,4 @@
-﻿# Python / Node common
+# Python / Node common
 __pycache__/
 *.pyc
 node_modules/
@@ -22,6 +22,8 @@ runtime/smoke_tests/*.jsonl
 runtime/commands/*.jsonl
 runtime/routing/*.jsonl
 runtime/tasks/*.jsonl
+runtime/task_runs/*.jsonl
+runtime/runner/*.jsonl
 
 # Never commit private runtime data
 runtime-data-private/
@@ -46,4 +48,3 @@ logs/errors.jsonl
 logs/timeline.jsonl
 logs/mas_trace.jsonl
 logs/runtime/
-
