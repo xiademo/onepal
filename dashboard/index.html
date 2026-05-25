@@ -1,53 +1,99 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OnePal — AI Multi-Agent Platform</title>
-<link rel="stylesheet" href="css/dashboard.css">
+<title>OnePal Dashboard</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
+
 <header class="header">
-  <div class="header-left">
-    <div class="header-logo">OP</div>
-    <span class="header-title">OnePal</span>
-    <span class="header-badge">P0</span>
-  </div>
-  <div class="header-right">
-    <span class="header-clock" id="clock">--</span>
-    <span class="status-dot" id="status-dot"></span>
-    <span class="status-text">Platform Initialized</span>
+  <h1>OnePal Dashboard</h1>
+  <div class="header-info">
+    <span class="api-badge" id="api-badge">API</span>
+    <span class="api-url" id="api-url">http://127.0.0.1:18790</span>
+    <button class="btn btn-sm" id="refresh-all-btn" title="Refresh all panels">Refresh All</button>
   </div>
 </header>
-<main class="main">
-  <div class="section-title"><span class="icon">🧩</span>Agent Center</div>
-  <div class="agent-grid" id="agent-grid"></div>
 
-  <div class="section-title" style="margin-top:24px"><span class="icon">📋</span>Task Tree Viewer</div>
-  <div class="card"><p style="color:var(--text-sub);font-size:13px">Task Tree Engine will display here in Phase 1.</p></div>
+<main class="grid">
 
-  <div class="row-2col" style="margin-top:24px">
-    <section>
-      <div class="section-title"><span class="icon">✅</span>Approval Queue</div>
-      <div class="card"><p style="color:var(--text-sub);font-size:13px">No pending approvals.</p></div>
-    </section>
-    <section>
-      <div class="section-title"><span class="icon">🧠</span>Memory Center</div>
-      <div class="card"><p style="color:var(--text-sub);font-size:13px">Active: 0 | Pending: 0</p></div>
-    </section>
-  </div>
+  <!-- Health Panel -->
+  <section class="panel health-panel" id="health-panel">
+    <div class="panel-header">
+      <h2>Health</h2>
+      <span class="status-badge" id="health-status-badge">--</span>
+    </div>
+    <div class="panel-body" id="health-body">
+      <div class="loading">Checking...</div>
+    </div>
+  </section>
 
-  <div class="row-2col" style="margin-top:24px">
-    <section>
-      <div class="section-title"><span class="icon">🛠</span>Skills Center</div>
-      <div class="card"><p style="color:var(--text-sub);font-size:13px">No skills installed yet.</p></div>
-    </section>
-    <section>
-      <div class="section-title"><span class="icon">📊</span>System Health</div>
-      <div class="card"><p style="color:var(--text-sub);font-size:13px">All systems nominal. Clean rebuild P0.</p></div>
-    </section>
-  </div>
+  <!-- Command Panel -->
+  <section class="panel command-panel" id="command-panel">
+    <div class="panel-header">
+      <h2>Command</h2>
+    </div>
+    <div class="panel-body">
+      <div class="command-form">
+        <input type="text" id="command-input" placeholder="e.g. run startup smoke test"
+               maxlength="2000" autocomplete="off">
+        <select id="profile-select">
+          <option value="safe_readonly">safe_readonly</option>
+          <option value="local_write_with_approval">local_write_with_approval</option>
+        </select>
+        <button class="btn btn-primary" id="command-submit-btn">Submit</button>
+        <button class="btn btn-sm" id="command-clear-btn">Clear</button>
+      </div>
+      <div class="command-error" id="command-error"></div>
+      <div class="command-result" id="command-result"></div>
+    </div>
+  </section>
+
+  <!-- Tasks Panel -->
+  <section class="panel tasks-panel" id="tasks-panel">
+    <div class="panel-header">
+      <h2>Tasks</h2>
+      <button class="btn btn-sm" id="tasks-refresh-btn">Refresh</button>
+    </div>
+    <div class="panel-body" id="tasks-body">
+      <div class="loading">Loading...</div>
+    </div>
+  </section>
+
+  <!-- Task Runs Panel -->
+  <section class="panel runs-panel" id="runs-panel">
+    <div class="panel-header">
+      <h2>Task Runs</h2>
+      <button class="btn btn-sm" id="runs-refresh-btn">Refresh</button>
+    </div>
+    <div class="panel-body" id="runs-body">
+      <div class="loading">Loading...</div>
+    </div>
+  </section>
+
+  <!-- MAS Trace Panel -->
+  <section class="panel trace-panel" id="trace-panel">
+    <div class="panel-header">
+      <h2>MAS Trace</h2>
+      <button class="btn btn-sm" id="trace-refresh-btn">Refresh</button>
+    </div>
+    <div class="panel-body" id="trace-body">
+      <div class="loading">Loading...</div>
+    </div>
+  </section>
+
 </main>
-<script src="js/dashboard.js"></script>
+
+<footer class="footer">
+  <span>local only</span>
+  <span>|</span>
+  <span>no direct runtime access</span>
+  <span>|</span>
+  <span>no governance bypass</span>
+</footer>
+
+<script src="app.js"></script>
 </body>
 </html>
