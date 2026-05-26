@@ -138,6 +138,8 @@ def test_T8():
         "--glob", "!scripts/run_startup_smoke_test.py",
         "--glob", "!tests/test_startup_smoke_test.py",
         "--glob", "!scripts/request_action.py",
+        "--glob", "!scripts/memory_candidate.py",
+        "--glob", "!tests/test_memory_center.py",
         "--glob", "!registries/**",
         ".",
     ], timeout=30)

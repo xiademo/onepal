@@ -47,4 +47,10 @@ logs/rebuild_report_*.md
 logs/errors.jsonl
 logs/timeline.jsonl
 logs/mas_trace.jsonl
+logs/memory_audit.jsonl
 logs/runtime/
+
+# Memory Center — runtime data
+memory/**/*.jsonl
+memory/indexes/*.json
+memory/reports/*.json

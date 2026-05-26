@@ -1,0 +1,19 @@
+{
+  "version": "0.1.0",
+  "note": "Draft example for memory store entries. No core schema exists yet for memory_store.",
+  "data": {
+    "memory_id": "mem_example_001",
+    "memory_type": "project_decision",
+    "content": "OnePal uses Python 3.11 via py launcher as the primary scripting language for all governance and runtime scripts.",
+    "source_candidate_id": "memcand_example_001",
+    "source_proposal_id": "memprop_example_001",
+    "confidence": 0.9,
+    "created_at": "2026-05-25T12:00:00Z",
+    "updated_at": null,
+    "last_used_at": null,
+    "usage_count": 0,
+    "decay_policy": "review_quarterly",
+    "status": "active",
+    "tags": ["architecture", "toolchain", "python"]
+  }
+}
