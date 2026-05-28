@@ -520,9 +520,40 @@ function refreshMemory() {
 
 if (memoryRefreshBtn) { memoryRefreshBtn.addEventListener('click', refreshMemory); }
 
+// ─── Research Panel ───
+var researchRefreshBtn = document.getElementById('research-refresh-btn');
+state.research = { sources: { status:'loading', data:[], error:null }, packets: { status:'loading', data:[], error:null }, cards: { status:'loading', data:[], error:null } };
+
+function renderResearch(body) {
+  var c = body || document.getElementById('research-body');
+  if (state.research.sources.status === 'loading') { showLoading(c); return; }
+  c.innerHTML = '';
+  var srcs = state.research.sources.data || [], pkts = state.research.packets.data || [], cards = state.research.cards.data || [];
+  var formDiv = el('div', 'memory-form');
+  formDiv.appendChild(el('h3','','Create Source'));
+  var inp = el('input'); inp.type='text'; inp.id='rsrc-content'; inp.placeholder='Source content...'; inp.maxLength=2000; formDiv.appendChild(inp);
+  var tsel = el('select'); tsel.id='rsrc-type'; ['manual_text','article_summary','paper_summary'].forEach(function(t){var o=el('option');o.value=t;o.textContent=t;tsel.appendChild(o)}); formDiv.appendChild(tsel);
+  var btn = el('button','btn btn-primary','Create'); btn.onclick=function(){var ct=document.getElementById('rsrc-content').value.trim();if(!ct){alert('Content required');return}apiPost('/research/sources',{title:'Research Source',content_summary:ct,source_type:document.getElementById('rsrc-type').value}).then(function(){refreshResearch()}).catch(function(e){alert(e.message)})}; formDiv.appendChild(btn);
+  c.appendChild(formDiv);
+  c.appendChild(el('h3','','Sources ('+srcs.length+')'));
+  c.appendChild(el('h3','','Packets ('+pkts.length+')'));
+  c.appendChild(el('h3','','Cognition Cards ('+cards.length+')'));
+}
+
+function refreshResearch() {
+  state.research.sources.status='loading'; state.research.packets.status='loading'; state.research.cards.status='loading'; renderResearch();
+  Promise.all([
+    apiGet('/research/sources?limit=10').then(function(r){state.research.sources.status='success';state.research.sources.data=r.data.sources||[]}).catch(function(e){state.research.sources.status='error'}),
+    apiGet('/research/packets?limit=10').then(function(r){state.research.packets.status='success';state.research.packets.data=r.data.packets||[]}).catch(function(e){state.research.packets.status='error'}),
+    apiGet('/research/cognition-cards?limit=10').then(function(r){state.research.cards.status='success';state.research.cards.data=r.data.cards||[]}).catch(function(e){state.research.cards.status='error'})
+  ]).finally(function(){renderResearch()});
+}
+if(researchRefreshBtn){researchRefreshBtn.addEventListener('click',refreshResearch)}
+
 // ─── Init ───
 refreshAll();
 refreshMemory();
+refreshResearch();
 startAutoRefresh();
 updateApiBadge();
 

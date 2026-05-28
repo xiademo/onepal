@@ -289,11 +289,74 @@ def main():
     test_mem_unknown_route()
     test_mem_path_safety()
 
+    # Research API tests
+    with tempfile.TemporaryDirectory(prefix="onepal_api_r_") as td:
+        rd = Path(td)
+        test_research_sources_empty(rd)
+        test_research_packets_empty(rd)
+        test_research_evidence_empty(rd)
+        test_research_cards_empty(rd)
+        test_research_post_validation(rd)
+    test_research_sources_no_path()
+    test_research_api_no_shell()
+
     print("\n" + "=" * 60)
     total = passed + failed
     print(f"Results: {passed}/{total} PASS, {failed}/{total} FAIL")
     print("=" * 60)
     sys.exit(0 if failed == 0 else 1)
+
+
+# ─── Research API Tests (Task 11-B) ───
+
+def test_research_sources_empty(tmpdir):
+    print("\n--- R1: GET /research/sources empty ---")
+    from scripts.api_server import handle_research_sources_get
+    resp = handle_research_sources_get(tmpdir / "x.jsonl", 20)
+    test("R1: sources empty", resp["ok"] and resp["data"]["sources"] == [])
+
+def test_research_packets_empty(tmpdir):
+    print("\n--- R2: GET /research/packets empty ---")
+    from scripts.api_server import handle_research_packets_get
+    resp = handle_research_packets_get(tmpdir / "x.jsonl", 20)
+    test("R2: packets empty", resp["ok"] and resp["data"]["packets"] == [])
+
+def test_research_evidence_empty(tmpdir):
+    print("\n--- R3: GET /research/evidence empty ---")
+    from scripts.api_server import handle_research_evidence_get
+    resp = handle_research_evidence_get(tmpdir / "x.jsonl", 20)
+    test("R3: evidence empty", resp["ok"] and resp["data"]["evidence"] == [])
+
+def test_research_cards_empty(tmpdir):
+    print("\n--- R4: GET /research/cognition-cards empty ---")
+    from scripts.api_server import handle_research_cards_get
+    resp = handle_research_cards_get(tmpdir / "x.jsonl", 20)
+    test("R4: cognition-cards empty", resp["ok"] and resp["data"]["cards"] == [])
+
+def test_research_sources_no_path():
+    print("\n--- R5: research sources no path param ---")
+    from scripts.api_server import RESEARCH_SOURCES_PATH, handle_research_sources_get
+    # Verify path is under PROJECT_ROOT (hardcoded)
+    ok = str(RESEARCH_SOURCES_PATH).startswith(str(PROJECT_ROOT))
+    test("R5: sources path under project root", ok)
+
+def test_research_post_validation(tmpdir):
+    print("\n--- R6: research POST validation ---")
+    from scripts.api_server import handle_research_sources_post
+    resp = handle_research_sources_post({"content_summary":""}, "scripts/research_packet.py")
+    ok = not resp["ok"] and resp["error"]["code"] == "EMPTY_CONTENT"
+    test("R6: sources rejects empty", ok)
+
+    resp2 = handle_research_sources_post({"content_summary":"x"*3000}, "scripts/research_packet.py")
+    ok2 = not resp2["ok"] and resp2["error"]["code"] == "CONTENT_TOO_LONG"
+    test("R6b: sources rejects overlong", ok2)
+
+def test_research_api_no_shell():
+    print("\n--- R7: research API no shell=True ---")
+    with open(PROJECT_ROOT / "scripts" / "api_server.py", "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    code = "".join([l for l in lines if "no shell=True" not in l and not l.strip().startswith("#")])
+    test("R7: no shell=True in API", "shell=True" not in code)
 
 
 # ─── Memory API Tests (Task 09-B) ───

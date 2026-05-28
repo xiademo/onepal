@@ -36,6 +36,13 @@ MEMORY_STORE_SCRIPT = PROJECT_ROOT / "scripts" / "memory_store.py"
 MEMORY_CANDIDATES_PATH = PROJECT_ROOT / "memory" / "candidates" / "memory_candidates.jsonl"
 MEMORY_PROPOSALS_PATH = PROJECT_ROOT / "memory" / "proposals" / "memory_proposals.jsonl"
 MEMORY_STORE_PATH = PROJECT_ROOT / "memory" / "store" / "memory_store.jsonl"
+RESEARCH_SOURCES_PATH = PROJECT_ROOT / "research" / "sources" / "research_sources.jsonl"
+RESEARCH_PACKETS_PATH = PROJECT_ROOT / "research" / "packets" / "research_packets.jsonl"
+RESEARCH_EVIDENCE_PATH = PROJECT_ROOT / "research" / "evidence" / "evidence_packs.jsonl"
+RESEARCH_CARDS_PATH = PROJECT_ROOT / "research" / "cognition" / "cognition_cards.jsonl"
+RESEARCH_HANDOFFS_DIR = PROJECT_ROOT / "research" / "handoffs"
+RESEARCH_PACKET_SCRIPT = PROJECT_ROOT / "scripts" / "research_packet.py"
+COGNITION_CARD_SCRIPT = PROJECT_ROOT / "scripts" / "cognition_card.py"
 
 MAX_LIMIT = 100
 MAX_COMMAND_LENGTH = 2000
@@ -384,6 +391,134 @@ def handle_memory_archive_post(body, script_path):
     return build_response(True, data={"memory_id": mid, "status": data.get("status", "archived")})
 
 
+# ─── Research API handlers ───
+
+def handle_research_sources_get(path, limit):
+    results, skipped = read_jsonl(path, limit)
+    safe = [{"source_id": s.get("source_id"), "source_type": s.get("source_type"), "title": s.get("title"),
+             "source_level": s.get("source_level","?"), "credibility_score": s.get("credibility_score"),
+             "freshness": s.get("freshness","?"), "status": s.get("status","?"),
+             "created_at": s.get("created_at")} for s in results]
+    for s in safe:
+        is_r, _ = _redact(s.get("title",""))
+        if is_r:
+            s["title"] = "[REDACTED]"
+            s["redacted"] = True
+    return build_response(True, data={"sources": safe[-limit:]}, meta_extra={"total": len(safe), "limit": limit})
+
+def handle_research_packets_get(path, limit):
+    results, _ = read_jsonl(path, limit)
+    safe = [{"packet_id": p.get("packet_id"), "topic": p.get("topic"), "question": p.get("question",""),
+             "source_ids": p.get("source_ids",[]), "summary": p.get("summary",""),
+             "key_findings": p.get("key_findings",[]), "uncertainties": p.get("uncertainties",[]),
+             "recommended_next_action": p.get("recommended_next_action",""), "status": p.get("status"),
+             "created_at": p.get("created_at")} for p in results]
+    return build_response(True, data={"packets": safe[-limit:]}, meta_extra={"total": len(safe), "limit": limit})
+
+def handle_research_evidence_get(path, limit):
+    results, _ = read_jsonl(path, limit)
+    safe = [{"evidence_pack_id": e.get("evidence_pack_id"), "packet_id": e.get("packet_id"),
+             "confidence": e.get("confidence"), "claims": e.get("claims",[]), "created_at": e.get("created_at")} for e in results]
+    return build_response(True, data={"evidence": safe[-limit:]}, meta_extra={"total": len(safe), "limit": limit})
+
+def handle_research_cards_get(path, limit):
+    results, _ = read_jsonl(path, limit)
+    safe = [{"card_id": c.get("card_id"), "source_packet_id": c.get("source_packet_id"),
+             "topic": c.get("topic"), "core_idea": c.get("core_idea",""), "why_it_matters": c.get("why_it_matters",""),
+             "mental_model": c.get("mental_model",""), "self_test_questions": c.get("self_test_questions",[]),
+             "confidence": c.get("confidence"), "status": c.get("status"), "created_at": c.get("created_at")} for c in results]
+    return build_response(True, data={"cards": safe[-limit:]}, meta_extra={"total": len(safe), "limit": limit})
+
+def handle_research_handoffs_get(limit):
+    results = []
+    if RESEARCH_HANDOFFS_DIR.exists():
+        for f in RESEARCH_HANDOFFS_DIR.glob("*.jsonl"):
+            recs, _ = read_jsonl(f, limit); results.extend(recs)
+    safe = [{"handoff_id": h.get("handoff_id"), "handoff_type": h.get("handoff_type"),
+             "source_type": h.get("source_type",""), "source_id": h.get("source_id",""),
+             "summary": h.get("summary",""), "status": h.get("status"), "created_at": h.get("created_at")} for h in results]
+    return build_response(True, data={"handoffs": safe[-limit:]}, meta_extra={"total": len(safe), "limit": limit})
+
+def handle_research_sources_post(body, script_path):
+    content = (body.get("content_summary") or "").strip()
+    if not content: return build_response(False, error={"code":"EMPTY_CONTENT","message":"content required"})
+    if len(content) > 2000: return build_response(False, error={"code":"CONTENT_TOO_LONG","message":"max 2000 chars"})
+    ok, data, ec = _run_memory_cmd([str(script_path), "source-create", "--title", body.get("title","Untitled"),
+                                     "--content-summary", content, "--source-type", body.get("source_type","manual_text"),
+                                     "--source-level", body.get("source_level","unknown")])
+    if not ok: return build_response(False, error={"code":"SCRIPT_ERROR","message":data.get("error","unknown")})
+    return build_response(True, data={"source_id": data.get("source",{}).get("source_id"), "status": data.get("status")})
+
+def handle_research_evaluate_post(body, script_path):
+    sid = (body.get("source_id") or "").strip()
+    if not sid: return build_response(False, error={"code":"MISSING_ID","message":"source_id required"})
+    ok, data, _ = _run_memory_cmd([str(script_path), "source-evaluate", "--source-id", sid, "--trust-level", body.get("trust_level","B"),
+                                    "--credibility-score", str(body.get("credibility_score",0.5)),
+                                    "--freshness", body.get("freshness","acceptable")])
+    if not ok: return build_response(False, error={"code":"SCRIPT_ERROR","message":data.get("error","unknown")})
+    return build_response(True, data={"source_id": sid, "status": data.get("status","evaluated")})
+
+def handle_research_packets_post(body, script_path):
+    topic = (body.get("topic") or "").strip()
+    src_ids = body.get("source_ids","")
+    if not topic: return build_response(False, error={"code":"EMPTY_TOPIC","message":"topic required"})
+    if not src_ids: return build_response(False, error={"code":"MISSING_SOURCES","message":"source_ids required"})
+    ok, data, _ = _run_memory_cmd([str(script_path), "packet-create", "--topic", topic, "--question", body.get("question",""), "--source-ids", str(src_ids)])
+    if not ok: return build_response(False, error={"code":"SCRIPT_ERROR","message":data.get("error","unknown")})
+    return build_response(True, data={"packet_id": data.get("packet",{}).get("packet_id"), "status": data.get("status")})
+
+def handle_research_evidence_post(body, script_path):
+    pid = (body.get("packet_id") or "").strip()
+    if not pid: return build_response(False, error={"code":"MISSING_ID","message":"packet_id required"})
+    ok, data, _ = _run_memory_cmd([str(script_path), "evidence-create", "--packet-id", pid,
+                                    "--claim-text", body.get("claim_text","Evidence claim"),
+                                    "--claim-type", body.get("claim_type","fact"),
+                                    "--confidence", str(body.get("confidence",0.5))])
+    if not ok: return build_response(False, error={"code":"SCRIPT_ERROR","message":data.get("error","unknown")})
+    return build_response(True, data={"evidence_pack_id": data.get("evidence",{}).get("evidence_pack_id"), "status": data.get("status")})
+
+def handle_research_synthesize_post(body, script_path):
+    pid = (body.get("packet_id") or "").strip()
+    if not pid: return build_response(False, error={"code":"MISSING_ID","message":"packet_id required"})
+    ok, data, _ = _run_memory_cmd([str(script_path), "packet-synthesize", "--packet-id", pid,
+                                    "--summary", body.get("summary","Synthesized findings")])
+    if not ok: return build_response(False, error={"code":"SCRIPT_ERROR","message":data.get("error","unknown")})
+    return build_response(True, data={"packet_id": pid, "status": data.get("status","synthesized")})
+
+def handle_research_cards_post(body, script_path):
+    pid = (body.get("packet_id") or "").strip()
+    if not pid: return build_response(False, error={"code":"MISSING_ID","message":"packet_id required"})
+    ok, data, _ = _run_memory_cmd([str(script_path), "create", "--packet-id", pid,
+                                    "--core-idea", body.get("core_idea",""),
+                                    "--why-it-matters", body.get("why_it_matters",""),
+                                    "--mental-model", body.get("mental_model",""),
+                                    "--confidence", str(body.get("confidence",0.5))])
+    if not ok: return build_response(False, error={"code":"SCRIPT_ERROR","message":data.get("error","unknown")})
+    return build_response(True, data={"card_id": data.get("card",{}).get("card_id"), "status": data.get("status")})
+
+def handle_research_handoffs_post(body, script_path):
+    htype = (body.get("handoff_type") or "").strip()
+    src_id = (body.get("source_id") or "").strip()
+    if not htype: return build_response(False, error={"code":"MISSING_TYPE","message":"handoff_type required"})
+    if not src_id: return build_response(False, error={"code":"MISSING_ID","message":"source_id required"})
+    if htype not in ("memory","growth","career","capability"): return build_response(False, error={"code":"INVALID_TYPE","message":"invalid handoff_type"})
+    ok, data, _ = _run_memory_cmd([str(script_path), "handoff-create", "--packet-id", src_id, "--handoff-type", htype])
+    if not ok: return build_response(False, error={"code":"SCRIPT_ERROR","message":data.get("error","unknown")})
+    msg = "Memory handoff creates candidate only — NOT written to memory store." if htype=="memory" else ""
+    return build_response(True, data={"handoff_type": htype, "status": data.get("status","created"), "note": msg})
+
+def handle_research_archive_post(body, script_path):
+    ttype = (body.get("target_type") or "").strip()
+    tid = (body.get("target_id") or "").strip()
+    if not ttype or not tid: return build_response(False, error={"code":"MISSING_ARGS","message":"target_type and target_id required"})
+    if ttype not in ("source","packet","cognition_card","handoff"): return build_response(False, error={"code":"INVALID_TYPE","message":"invalid target_type"})
+    if ttype == "cognition_card":
+        ok, data, _ = _run_memory_cmd([str(COGNITION_CARD_SCRIPT), "archive", "--card-id", tid])
+    else:
+        ok, data, _ = _run_memory_cmd([str(script_path), "source-archive", "--source-id", tid])
+    return build_response(True, data={"target_id": tid, "target_type": ttype, "status": "archived" if ok else "error"})
+
+
 class OnePalHandler(BaseHTTPRequestHandler):
     """HTTP request handler for OnePal API."""
 
@@ -399,6 +534,12 @@ class OnePalHandler(BaseHTTPRequestHandler):
     memory_candidates_path = MEMORY_CANDIDATES_PATH
     memory_proposals_path = MEMORY_PROPOSALS_PATH
     memory_store_path = MEMORY_STORE_PATH
+    research_sources_path = RESEARCH_SOURCES_PATH
+    research_packets_path = RESEARCH_PACKETS_PATH
+    research_evidence_path = RESEARCH_EVIDENCE_PATH
+    research_cards_path = RESEARCH_CARDS_PATH
+    research_packet_script = RESEARCH_PACKET_SCRIPT
+    cognition_card_script = COGNITION_CARD_SCRIPT
 
     def _send_json(self, status, data):
         body = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
@@ -457,6 +598,23 @@ class OnePalHandler(BaseHTTPRequestHandler):
                 resp = handle_memory_proposals_get(self.memory_proposals_path, limit)
                 self._send_json(200, resp)
 
+            # Research endpoints
+            elif path == "/research/sources":
+                resp = handle_research_sources_get(self.research_sources_path, limit)
+                self._send_json(200, resp)
+            elif path == "/research/packets":
+                resp = handle_research_packets_get(self.research_packets_path, limit)
+                self._send_json(200, resp)
+            elif path == "/research/evidence":
+                resp = handle_research_evidence_get(self.research_evidence_path, limit)
+                self._send_json(200, resp)
+            elif path == "/research/cognition-cards":
+                resp = handle_research_cards_get(self.research_cards_path, limit)
+                self._send_json(200, resp)
+            elif path == "/research/handoffs":
+                resp = handle_research_handoffs_get(limit)
+                self._send_json(200, resp)
+
             else:
                 self._send_json(404, build_response(False, error={
                     "code": "NOT_FOUND",
@@ -504,6 +662,32 @@ class OnePalHandler(BaseHTTPRequestHandler):
             elif path == "/memory/archive":
                 resp = handle_memory_archive_post(body_json, self.memory_store_script)
                 self._send_json(200, resp)
+
+            # Research POST endpoints
+            elif path == "/research/sources":
+                resp = handle_research_sources_post(body_json, self.research_packet_script)
+                self._send_json(200 if resp.get("ok") else 400, resp)
+            elif path == "/research/sources/evaluate":
+                resp = handle_research_evaluate_post(body_json, self.research_packet_script)
+                self._send_json(200 if resp.get("ok") else 400, resp)
+            elif path == "/research/packets":
+                resp = handle_research_packets_post(body_json, self.research_packet_script)
+                self._send_json(200 if resp.get("ok") else 400, resp)
+            elif path == "/research/evidence":
+                resp = handle_research_evidence_post(body_json, self.research_packet_script)
+                self._send_json(200 if resp.get("ok") else 400, resp)
+            elif path == "/research/packets/synthesize":
+                resp = handle_research_synthesize_post(body_json, self.research_packet_script)
+                self._send_json(200 if resp.get("ok") else 400, resp)
+            elif path == "/research/cognition-cards":
+                resp = handle_research_cards_post(body_json, self.cognition_card_script)
+                self._send_json(200 if resp.get("ok") else 400, resp)
+            elif path == "/research/handoffs":
+                resp = handle_research_handoffs_post(body_json, self.research_packet_script)
+                self._send_json(200 if resp.get("ok") else 400, resp)
+            elif path == "/research/archive":
+                resp = handle_research_archive_post(body_json, self.research_packet_script)
+                self._send_json(200 if resp.get("ok") else 400, resp)
 
             else:
                 self._send_json(404, build_response(False, error={

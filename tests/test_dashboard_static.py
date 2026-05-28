@@ -161,6 +161,22 @@ test("T30: app.js no memory_store.py direct call", "memory_store.py" not in js)
 test("T31: app.js no eval/new Function", "eval(" not in js_stripped and "new Function(" not in js_stripped)
 test("T32: app.js no require/fs/child_process", "require(" not in js and "fs." not in js)
 
+# ─── Research Panel Tests (Task 11-B) ───
+print("\n--- T33-T42: Research Panel static checks ---")
+test("T33: index.html contains research-panel", 'id="research-panel"' in html)
+test("T34: research-panel DOM id", 'research-panel' in html)
+for label, ep in [
+    ("T35: app.js GET /research/sources", "/research/sources"),
+    ("T36: app.js GET /research/packets", "/research/packets"),
+    ("T37: app.js GET /research/cognition-cards", "/research/cognition-cards"),
+    ("T38: app.js POST /research/sources", "/research/sources"),
+]:
+    test(label, ep in js)
+test("T39: app.js no research/ direct access", "research/" not in js or "apiPost('/research" in js or 'apiGet("/research' in js)
+test("T40: app.js no research_packet.py call", "research_packet.py" not in js)
+test("T41: app.js no cognition_card.py call", "cognition_card.py" not in js)
+test("T42: app.js fetch uses research endpoints", "/research/sources" in js or "/research/packets" in js)
+
 # Summary
 print("\n" + "=" * 60)
 total = passed + failed
