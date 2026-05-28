@@ -54,3 +54,8 @@ logs/runtime/
 memory/**/*.jsonl
 memory/indexes/*.json
 memory/reports/*.json
+
+# Research Center — runtime data
+research/**/*.jsonl
+research/reports/*.json
+logs/research_audit.jsonl
