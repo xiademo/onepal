@@ -179,6 +179,8 @@ def main():
         "--glob", "!scripts/request_action.py",
         "--glob", "!scripts/memory_candidate.py",
         "--glob", "!tests/test_memory_center.py",
+        "--glob", "!tests/test_api_server.py",
+        "--glob", "!scripts/api_server.py",
         "--glob", "!registries/**",
         ".",
     ], timeout=30)

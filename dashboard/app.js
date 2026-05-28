@@ -416,8 +416,113 @@ function startAutoRefresh() {
   }, REFRESH_MS);
 }
 
+// ─── Memory Center Panel ───
+var memoryRefreshBtn = document.getElementById('memory-refresh-btn');
+
+state.memories = { status: 'loading', data: [], error: null };
+state.memCandidates = { status: 'loading', data: [], error: null };
+state.memProposals = { status: 'loading', data: [], error: null };
+
+function renderMemory(body) {
+  var container = body || document.getElementById('memory-body');
+  if (state.memories.status === 'loading') { showLoading(container); return; }
+  if (state.memories.status === 'error') { showError(container, state.memories.error, refreshMemory); return; }
+
+  var memories = state.memories.data || [];
+  var candidates = state.memCandidates.data || [];
+  var proposals = state.memProposals.data || [];
+
+  container.innerHTML = '';
+
+  // Create Candidate form
+  var formDiv = el('div', 'memory-form');
+  formDiv.appendChild(el('h3', '', 'Create Candidate'));
+  var input = el('input');
+  input.type = 'text'; input.id = 'mem-content'; input.placeholder = 'Memory content...'; input.maxLength = 4000;
+  formDiv.appendChild(input);
+  var typeSel = el('select'); typeSel.id = 'mem-type';
+  ['project_decision','user_preference','system_rule','workflow_preference'].forEach(function(t) {
+    var o = el('option'); o.value = t; o.textContent = t; typeSel.appendChild(o);
+  });
+  formDiv.appendChild(typeSel);
+  var submitBtn = el('button', 'btn btn-primary', 'Create');
+  submitBtn.onclick = function() {
+    var c = document.getElementById('mem-content').value.trim();
+    var t = document.getElementById('mem-type').value;
+    if (!c) { document.getElementById('mem-result').textContent = 'Content required'; return; }
+    state.command.status = 'submitting';
+    apiPost('/memory/candidates', {content: c, memory_type: t, source_type: 'manual', source_agent: 'user', sensitivity: 'personal'})
+      .then(function(r) { document.getElementById('mem-result').textContent = 'Created: ' + (r.data && r.data.candidate_id); refreshMemory(); })
+      .catch(function(e) { document.getElementById('mem-result').textContent = 'Error: ' + e.message; });
+  };
+  formDiv.appendChild(submitBtn);
+  var resultSpan = el('span', ''); resultSpan.id = 'mem-result';
+  formDiv.appendChild(resultSpan);
+  container.appendChild(formDiv);
+
+  // Active Memories
+  container.appendChild(el('h3', '', 'Active Memories (' + memories.length + ')'));
+  if (memories.length === 0) { container.appendChild(el('div', 'empty', 'No active memories')); }
+  else {
+    var memCols = ['ID', 'Type', 'Content', 'Status', 'Actions'];
+    var memRows = memories.slice(0, 10).map(function(m) {
+      return [
+        el('span', 'mono', (m.memory_id || '').substring(0, 14)),
+        m.memory_type || '?',
+        (m.content || '').substring(0, 80),
+        badge(m.status || '?', 'status-' + (m.status || '')),
+        (function() { var a = el('button', 'btn btn-sm', 'Archive'); a.onclick = function() { apiPost('/memory/archive', {memory_id: m.memory_id, reason: 'manual'}).then(function() { refreshMemory(); }).catch(function(e) { alert(e.message); }); }; return a; })()
+      ];
+    });
+    container.appendChild(buildTable(memCols, memRows));
+  }
+
+  // Candidates
+  container.appendChild(el('h3', '', 'Candidates (' + candidates.length + ')'));
+  var candCols = ['Candidate ID', 'Type', 'Summary', 'Status', 'Actions'];
+  var candRows = candidates.slice(0, 10).map(function(c) {
+    return [
+      el('span', 'mono', (c.candidate_id || '').substring(0, 14)),
+      c.memory_type || '?',
+      (c.content_summary || '').substring(0, 60),
+      badge(c.status || '?', 'status-' + (c.status || '')),
+      (c.status === 'captured' || c.status === 'draft' ? (function() { var a = el('button', 'btn btn-sm', 'Propose'); a.onclick = function() { apiPost('/memory/proposals', {candidate_id: c.candidate_id}).then(function() { refreshMemory(); }).catch(function(e) { alert(e.message); }); }; return a; })() : el('span', '', ''))
+    ];
+  });
+  container.appendChild(buildTable(candCols, candRows));
+
+  // Proposals
+  container.appendChild(el('h3', '', 'Proposals (' + proposals.length + ')'));
+  var propCols = ['Proposal ID', 'Type', 'Status', 'Actions'];
+  var propRows = proposals.slice(0, 10).map(function(p) {
+    return [
+      el('span', 'mono', (p.proposal_id || '').substring(0, 14)),
+      p.memory_type || '?',
+      badge(p.status || '?', 'status-' + (p.status || '')),
+      (p.status === 'approved' ? (function() { var a = el('button', 'btn btn-sm', 'Store'); a.onclick = function() { apiPost('/memory/store', {proposal_id: p.proposal_id}).then(function() { refreshMemory(); }).catch(function(e) { alert(e.message); }); }; return a; })() : el('span', '', ''))
+    ];
+  });
+  container.appendChild(buildTable(propCols, propRows));
+}
+
+function refreshMemory() {
+  state.memories.status = 'loading'; state.memCandidates.status = 'loading'; state.memProposals.status = 'loading';
+  renderMemory();
+  Promise.all([
+    apiGet('/memory?limit=20').then(function(r) { state.memories.status = 'success'; state.memories.data = r.data.memories || []; })
+      .catch(function(e) { state.memories.status = 'error'; state.memories.error = e.message; }),
+    apiGet('/memory/candidates?limit=20').then(function(r) { state.memCandidates.status = 'success'; state.memCandidates.data = r.data.candidates || []; })
+      .catch(function(e) { state.memCandidates.status = 'error'; state.memCandidates.error = e.message; }),
+    apiGet('/memory/proposals?limit=20').then(function(r) { state.memProposals.status = 'success'; state.memProposals.data = r.data.proposals || []; })
+      .catch(function(e) { state.memProposals.status = 'error'; state.memProposals.error = e.message; }),
+  ]).finally(function() { renderMemory(); });
+}
+
+if (memoryRefreshBtn) { memoryRefreshBtn.addEventListener('click', refreshMemory); }
+
 // ─── Init ───
 refreshAll();
+refreshMemory();
 startAutoRefresh();
 updateApiBadge();
 

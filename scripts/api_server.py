@@ -22,6 +22,7 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PY = "py"
 
 # Allowed read paths (whitelist — no arbitrary file access)
 HEALTH_PATH = PROJECT_ROOT / "runtime" / "health_status.json"
@@ -30,9 +31,15 @@ TREES_PATH = PROJECT_ROOT / "runtime" / "tasks" / "task_trees.jsonl"
 TASK_RUNS_PATH = PROJECT_ROOT / "runtime" / "task_runs" / "task_runs.jsonl"
 MAS_TRACE_PATH = PROJECT_ROOT / "logs" / "mas_trace.jsonl"
 COMMAND_GATEWAY = PROJECT_ROOT / "scripts" / "command_gateway.py"
+MEMORY_CANDIDATE_SCRIPT = PROJECT_ROOT / "scripts" / "memory_candidate.py"
+MEMORY_STORE_SCRIPT = PROJECT_ROOT / "scripts" / "memory_store.py"
+MEMORY_CANDIDATES_PATH = PROJECT_ROOT / "memory" / "candidates" / "memory_candidates.jsonl"
+MEMORY_PROPOSALS_PATH = PROJECT_ROOT / "memory" / "proposals" / "memory_proposals.jsonl"
+MEMORY_STORE_PATH = PROJECT_ROOT / "memory" / "store" / "memory_store.jsonl"
 
 MAX_LIMIT = 100
 MAX_COMMAND_LENGTH = 2000
+MAX_MEMORY_CONTENT = 4000
 
 ALLOWED_HOSTS = {"127.0.0.1", "localhost"}
 
@@ -203,6 +210,180 @@ def handle_command(body, gateway_path):
     })
 
 
+# ─── Memory API handlers ───
+
+def _redact(content):
+    """Return redacted version if content matches secret patterns."""
+    import re as _re
+    patterns = [r'sk-[a-zA-Z0-9]{10,}', r'-----BEGIN', r'ghp_[a-zA-Z0-9]{20,}',
+                r'eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}',
+                r'\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b',
+                r'(?:api[_-]?key)\s*[:=]\s*\S{10,}', r'(?:password)\s*[:=]\s*\S{8,}',
+                r'(?:token)\s*[:=]\s*\S{10,}', r'(?:secret)\s*[:=]\s*\S{8,}']
+    for pat in patterns:
+        if _re.search(pat, content or "", _re.IGNORECASE):
+            return True, "[REDACTED]"
+    return False, content
+
+
+def _run_memory_cmd(cmd_args, timeout=30):
+    """Run a memory script subprocess safely."""
+    try:
+        result = subprocess.run(
+            [PY] + cmd_args,
+            capture_output=True, text=True, timeout=timeout,
+            encoding="utf-8", errors="replace",
+        )
+        out = (result.stdout or "").strip()
+        try:
+            data = json.loads(out) if out else {}
+        except json.JSONDecodeError:
+            data = {"raw_stdout": out[:500]}
+        return True, data, result.returncode
+    except subprocess.TimeoutExpired:
+        return False, {"error": "timeout"}, -1
+    except Exception as e:
+        return False, {"error": str(e)[:200]}, -1
+
+
+def _read_fixed_jsonl(path, limit=20):
+    """Read latest N lines from a fixed JSONL path."""
+    results, skipped = read_jsonl(path, limit)
+    return results, skipped
+
+
+def handle_memory_get(args, candidates_path, proposals_path, store_path, limit):
+    """GET /memory handler."""
+    results, skipped = read_jsonl(store_path, limit)
+    status_filter = args.get("status", "active")
+    mem_type = args.get("type")
+    filtered = [m for m in results if m.get("status") == status_filter]
+    if mem_type:
+        filtered = [m for m in filtered if m.get("memory_type") == mem_type]
+    # Redact secrets in content
+    for m in filtered:
+        is_redacted, redacted = _redact(m.get("content", ""))
+        if is_redacted:
+            m["content"] = "[REDACTED]"
+            m["redacted"] = True
+    return build_response(True, data={"memories": filtered[-limit:]}, meta_extra={
+        "total": len(filtered), "limit": limit, "source": "memory/store/memory_store.jsonl"
+    })
+
+
+def handle_memory_candidates_get(path, limit, status=None):
+    """GET /memory/candidates handler."""
+    results, skipped = read_jsonl(path, limit)
+    if status:
+        results = [c for c in results if c.get("status") == status]
+    # Redact secrets, return summaries only
+    safe = []
+    for c in results:
+        entry = {
+            "candidate_id": c.get("candidate_id"),
+            "memory_type": c.get("memory_type"),
+            "content_summary": (c.get("content") or c.get("content_summary") or "")[:200],
+            "status": c.get("status"),
+            "sensitivity": c.get("sensitivity"),
+            "requires_user_confirmation": c.get("requires_user_confirmation"),
+            "created_at": c.get("created_at"),
+        }
+        is_redacted, _ = _redact(c.get("content", ""))
+        if is_redacted:
+            entry["content_summary"] = "[REDACTED]"
+            entry["redacted"] = True
+        safe.append(entry)
+    return build_response(True, data={"candidates": safe[-limit:]}, meta_extra={
+        "total": len(safe), "skipped": skipped, "limit": limit
+    })
+
+
+def handle_memory_proposals_get(path, limit):
+    """GET /memory/proposals handler."""
+    results, skipped = read_jsonl(path, limit)
+    safe = [{
+        "proposal_id": p.get("proposal_id"),
+        "candidate_id": p.get("candidate_id"),
+        "proposal_type": p.get("proposal_type"),
+        "memory_type": p.get("memory_type"),
+        "status": p.get("status"),
+        "risk_level": p.get("sensitivity", "?") if isinstance(p.get("sensitivity"), str) else "?",
+        "requires_approval": p.get("requires_approval", True),
+        "created_at": p.get("created_at"),
+    } for p in results]
+    return build_response(True, data={"proposals": safe[-limit:]}, meta_extra={
+        "total": len(safe), "limit": limit
+    })
+
+
+def handle_memory_candidates_post(body, script_path):
+    """POST /memory/candidates handler."""
+    content = (body.get("content") or body.get("content_summary") or "").strip()
+    if not content:
+        return build_response(False, error={"code": "EMPTY_CONTENT", "message": "content must not be empty"})
+    if len(content) > MAX_MEMORY_CONTENT:
+        return build_response(False, error={"code": "CONTENT_TOO_LONG", "message": f"content must be <= {MAX_MEMORY_CONTENT} chars"})
+
+    ok, data, ec = _run_memory_cmd([
+        str(script_path), "create",
+        "--content", content,
+        "--memory-type", body.get("memory_type", "project_decision"),
+        "--source-type", body.get("source_type", "manual"),
+        "--source-agent", body.get("source_agent", "user"),
+        "--sensitivity", body.get("sensitivity", "personal"),
+        "--confidence", str(body.get("confidence", 0.8)),
+    ])
+    if not ok:
+        return build_response(False, error={"code": "SCRIPT_ERROR", "message": data.get("error", "unknown")})
+    if data.get("status") == "rejected":
+        return build_response(False, error={"code": "CANDIDATE_REJECTED", "message": data.get("reason", "rejected")})
+    return build_response(True, data={"candidate_id": data.get("candidate", {}).get("candidate_id"), "status": data.get("status")})
+
+
+def handle_memory_proposals_post(body, script_path):
+    """POST /memory/proposals handler."""
+    cid = (body.get("candidate_id") or "").strip()
+    if not cid:
+        return build_response(False, error={"code": "MISSING_ID", "message": "candidate_id required"})
+    reason = body.get("reason", "")
+    args = [str(script_path), "propose", "--candidate-id", cid]
+    if reason:
+        args.extend(["--reason", reason])
+    ok, data, ec = _run_memory_cmd(args)
+    if not ok:
+        return build_response(False, error={"code": "SCRIPT_ERROR", "message": data.get("error", "unknown")})
+    if data.get("status") == "rejected":
+        return build_response(False, error={"code": "PROPOSAL_REJECTED", "message": data.get("reason", "rejected")})
+    if data.get("status") == "deduped":
+        return build_response(True, data={"status": "deduped", "existing_candidate_id": data.get("existing_candidate_id"), "message": "duplicate exists"})
+    return build_response(True, data={"proposal_id": data.get("proposal", {}).get("proposal_id"), "status": data.get("status")})
+
+
+def handle_memory_store_post(body, script_path):
+    """POST /memory/store handler."""
+    pid = (body.get("proposal_id") or "").strip()
+    if not pid:
+        return build_response(False, error={"code": "MISSING_ID", "message": "proposal_id required"})
+    ok, data, ec = _run_memory_cmd([str(script_path), "store", "--proposal-id", pid])
+    if not ok:
+        return build_response(False, error={"code": "SCRIPT_ERROR", "message": data.get("error", "unknown")})
+    if data.get("status") == "rejected":
+        return build_response(False, error={"code": "STORE_REJECTED", "message": data.get("reason", data.get("error", "rejected"))})
+    return build_response(True, data={"memory_id": data.get("memory", {}).get("memory_id"), "status": data.get("status")})
+
+
+def handle_memory_archive_post(body, script_path):
+    """POST /memory/archive handler."""
+    mid = (body.get("memory_id") or "").strip()
+    if not mid:
+        return build_response(False, error={"code": "MISSING_ID", "message": "memory_id required"})
+    reason = body.get("reason", "api_archive")
+    ok, data, ec = _run_memory_cmd([str(script_path), "archive", "--memory-id", mid, "--reason", reason])
+    if not ok:
+        return build_response(False, error={"code": "SCRIPT_ERROR", "message": data.get("error", "unknown")})
+    return build_response(True, data={"memory_id": mid, "status": data.get("status", "archived")})
+
+
 class OnePalHandler(BaseHTTPRequestHandler):
     """HTTP request handler for OnePal API."""
 
@@ -213,6 +394,11 @@ class OnePalHandler(BaseHTTPRequestHandler):
     task_runs_path = TASK_RUNS_PATH
     mas_trace_path = MAS_TRACE_PATH
     gateway_path = COMMAND_GATEWAY
+    memory_candidate_script = MEMORY_CANDIDATE_SCRIPT
+    memory_store_script = MEMORY_STORE_SCRIPT
+    memory_candidates_path = MEMORY_CANDIDATES_PATH
+    memory_proposals_path = MEMORY_PROPOSALS_PATH
+    memory_store_path = MEMORY_STORE_PATH
 
     def _send_json(self, status, data):
         body = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
@@ -258,6 +444,19 @@ class OnePalHandler(BaseHTTPRequestHandler):
                 resp = handle_mas_trace(self.mas_trace_path, limit)
                 self._send_json(200, resp)
 
+            # Memory endpoints
+            elif path == "/memory":
+                resp = handle_memory_get({}, self.memory_candidates_path,
+                                         self.memory_proposals_path,
+                                         self.memory_store_path, limit)
+                self._send_json(200, resp)
+            elif path == "/memory/candidates":
+                resp = handle_memory_candidates_get(self.memory_candidates_path, limit)
+                self._send_json(200, resp)
+            elif path == "/memory/proposals":
+                resp = handle_memory_proposals_get(self.memory_proposals_path, limit)
+                self._send_json(200, resp)
+
             else:
                 self._send_json(404, build_response(False, error={
                     "code": "NOT_FOUND",
@@ -272,20 +471,11 @@ class OnePalHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         path = urlparse(self.path).path
 
-        if path != "/command":
-            self._send_json(404, build_response(False, error={
-                "code": "NOT_FOUND",
-                "message": f"POST route not found: {path}",
-            }))
-            return
-
         # Read body
         content_length = int(self.headers.get("Content-Length", 0))
         body_raw = self.rfile.read(content_length) if content_length > 0 else b"{}"
-
         try:
             body_json = json.loads(body_raw.decode("utf-8"))
-            command_text = body_json.get("command", "")
         except (json.JSONDecodeError, UnicodeDecodeError):
             self._send_json(400, build_response(False, error={
                 "code": "INVALID_JSON",
@@ -294,8 +484,32 @@ class OnePalHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            resp = handle_command(command_text, self.gateway_path)
-            self._send_json(200, resp)
+            if path == "/command":
+                command_text = body_json.get("command", "")
+                resp = handle_command(command_text, self.gateway_path)
+                self._send_json(200, resp)
+
+            elif path == "/memory/candidates":
+                resp = handle_memory_candidates_post(body_json, self.memory_candidate_script)
+                self._send_json(200 if resp.get("ok") else 400, resp)
+
+            elif path == "/memory/proposals":
+                resp = handle_memory_proposals_post(body_json, self.memory_candidate_script)
+                self._send_json(200 if resp.get("ok") else 400, resp)
+
+            elif path == "/memory/store":
+                resp = handle_memory_store_post(body_json, self.memory_store_script)
+                self._send_json(200 if resp.get("ok") else 400, resp)
+
+            elif path == "/memory/archive":
+                resp = handle_memory_archive_post(body_json, self.memory_store_script)
+                self._send_json(200, resp)
+
+            else:
+                self._send_json(404, build_response(False, error={
+                    "code": "NOT_FOUND",
+                    "message": f"POST route not found: {path}",
+                }))
         except Exception:
             self._send_json(500, build_response(False, error={
                 "code": "INTERNAL_ERROR",

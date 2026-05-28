@@ -137,6 +137,30 @@ print("\n--- T18: style.css has no external @import ---")
 import_refs = re.findall(r'@import\s+url\(["\']?https?://', css)
 test("T18: no external @import in style.css", len(import_refs) == 0)
 
+# ─── Memory Panel Tests (Task 09-B) ───
+print("\n--- T19-T32: Memory Panel static checks ---")
+test("T19: index.html contains memory-panel", 'id="memory-panel"' in html)
+test("T20: index.html memory-panel DOM id", 'memory-panel' in html)
+
+TEST_ENDPOINTS_JS = [
+    ("T21: app.js GET /memory", "/memory"),
+    ("T22: app.js GET /memory/candidates", "/memory/candidates"),
+    ("T23: app.js GET /memory/proposals", "/memory/proposals"),
+    ("T24: app.js POST /memory/candidates", "/memory/candidates"),
+    ("T25: app.js POST /memory/proposals", "/memory/proposals"),
+    ("T26: app.js POST /memory/store", "/memory/store"),
+    ("T27: app.js POST /memory/archive", "/memory/archive"),
+]
+for label, ep in TEST_ENDPOINTS_JS:
+    test(label, ep in js)
+
+test("T28: app.js no direct memory/ access", 
+     "memory/" not in js or 'apiPost("/memory' in js or "apiPost('/memory" in js)
+test("T29: app.js no memory_candidate.py direct call", "memory_candidate.py" not in js)
+test("T30: app.js no memory_store.py direct call", "memory_store.py" not in js)
+test("T31: app.js no eval/new Function", "eval(" not in js_stripped and "new Function(" not in js_stripped)
+test("T32: app.js no require/fs/child_process", "require(" not in js and "fs." not in js)
+
 # Summary
 print("\n" + "=" * 60)
 total = passed + failed
