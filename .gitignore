@@ -59,3 +59,8 @@ memory/reports/*.json
 research/**/*.jsonl
 research/reports/*.json
 logs/research_audit.jsonl
+
+# Growth Center — runtime data
+growth/**/*.jsonl
+growth/reports/*.json
+logs/growth_audit.jsonl
