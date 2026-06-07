@@ -300,6 +300,17 @@ def main():
     test_research_sources_no_path()
     test_research_api_no_shell()
 
+    # Growth API tests
+    with tempfile.TemporaryDirectory(prefix="onepal_api_g_") as td:
+        gd = Path(td)
+        test_growth_get_empty(gd)
+        test_growth_candidate_validation(gd)
+        test_growth_goal_flow(gd)
+        test_growth_plan_flow(gd)
+        test_growth_review_flow(gd)
+    test_growth_api_no_shell()
+    test_growth_path_safety()
+
     print("\n" + "=" * 60)
     total = passed + failed
     print(f"Results: {passed}/{total} PASS, {failed}/{total} FAIL")
@@ -357,6 +368,157 @@ def test_research_api_no_shell():
         lines = f.readlines()
     code = "".join([l for l in lines if "no shell=True" not in l and not l.strip().startswith("#")])
     test("R7: no shell=True in API", "shell=True" not in code)
+
+
+# --- Growth API Tests (Task 13-B) ---
+
+def test_growth_get_empty(tmpdir):
+    print("\n--- G1-G8: Growth GET empty lists ---")
+    from scripts.api_server import (
+        handle_growth_candidates_get, handle_growth_goals_get, handle_growth_capacity_get,
+        handle_growth_weekly_get, handle_growth_tasks_get, handle_growth_reviews_get,
+        handle_growth_adjustments_get, handle_growth_handoffs_get,
+    )
+    checks = [
+        ("G1: candidates empty", handle_growth_candidates_get(tmpdir / "c.jsonl", 20), "candidates"),
+        ("G2: goals empty", handle_growth_goals_get(tmpdir / "g.jsonl", 20), "goals"),
+        ("G3: capacity empty", handle_growth_capacity_get(tmpdir / "cap.jsonl", 20), "capacity"),
+        ("G4: weekly empty", handle_growth_weekly_get(tmpdir / "w.jsonl", 20), "weekly_plans"),
+        ("G5: daily tasks empty", handle_growth_tasks_get(tmpdir / "t.jsonl", 20), "daily_tasks"),
+        ("G6: reviews empty", handle_growth_reviews_get(tmpdir / "r.jsonl", 20), "reviews"),
+        ("G7: adjustments empty", handle_growth_adjustments_get(tmpdir / "a.jsonl", 20), "adjustments"),
+        ("G8: handoffs empty", handle_growth_handoffs_get(tmpdir / "h.jsonl", 20), "handoffs"),
+    ]
+    for label, resp, key in checks:
+        test(label, resp["ok"] and resp["data"][key] == [])
+
+
+def test_growth_candidate_validation(tmpdir):
+    print("\n--- G9-G12: Growth candidate validation ---")
+    from scripts.api_server import handle_growth_candidates_post, MAX_GROWTH_CONTENT
+    script = PROJECT_ROOT / "scripts" / "growth_goal.py"
+    cand = tmpdir / "candidates.jsonl"
+    audit = tmpdir / "audit.jsonl"
+    resp = handle_growth_candidates_post({"title": ""}, script, cand, audit)
+    test("G9: empty candidate title rejected", not resp["ok"] and resp["error"]["code"] == "EMPTY_TITLE")
+    resp2 = handle_growth_candidates_post({"title": "sk-abc123def456ghi"}, script, cand, audit)
+    test("G10: secret candidate rejected", not resp2["ok"] and resp2["error"]["code"] == "SECRET_DETECTED")
+    resp3 = handle_growth_candidates_post({"title": "x" * (MAX_GROWTH_CONTENT + 1)}, script, cand, audit)
+    test("G11: overlong candidate rejected", not resp3["ok"] and resp3["error"]["code"] == "CONTENT_TOO_LONG")
+    resp4 = handle_growth_candidates_post({"title": "Learn API design", "reason": "Task 13 test"}, script, cand, audit)
+    test("G12: valid candidate created", resp4["ok"] and resp4["data"].get("candidate_id"))
+
+
+def test_growth_goal_flow(tmpdir):
+    print("\n--- G13-G21: Growth goal flow ---")
+    from scripts.api_server import (
+        handle_growth_candidates_post, handle_growth_candidate_accept_post,
+        handle_growth_candidate_reject_post, handle_growth_goals_post,
+        handle_growth_archive_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "growth_goal.py"
+    cand = tmpdir / "candidates.jsonl"
+    goals = tmpdir / "goals.jsonl"
+    audit = tmpdir / "audit.jsonl"
+
+    create = handle_growth_candidates_post({"title": "Goal flow", "reason": "test"}, script, cand, audit)
+    cid = create["data"].get("candidate_id")
+    accept = handle_growth_candidate_accept_post({"candidate_id": cid}, script, cand, audit)
+    test("G13: candidate accepted", accept["ok"] and accept["data"]["status"] == "accepted")
+    goal = handle_growth_goals_post({"candidate_id": cid, "success_criteria": "Pass Task 13 tests"}, script, cand, goals, audit)
+    gid = goal["data"].get("goal_id")
+    test("G14: accepted candidate creates goal", goal["ok"] and gid)
+    missing_success = handle_growth_goals_post({"candidate_id": cid, "success_criteria": ""}, script, cand, goals, audit)
+    test("G15: missing success rejected", not missing_success["ok"] and missing_success["error"]["code"] == "MISSING_SUCCESS")
+    nf = handle_growth_candidate_accept_post({"candidate_id": "gc_missing"}, script, cand, audit)
+    test("G16: missing candidate rejected", not nf["ok"] and nf["error"]["code"] == "CANDIDATE_NOT_FOUND")
+    create2 = handle_growth_candidates_post({"title": "Not accepted", "reason": "test"}, script, cand, audit)
+    nonaccepted = handle_growth_goals_post({"candidate_id": create2["data"].get("candidate_id"), "success_criteria": "Done"}, script, cand, goals, audit)
+    test("G17: non-accepted candidate rejected", not nonaccepted["ok"] and nonaccepted["error"]["code"] == "NOT_ACCEPTED")
+    reject = handle_growth_candidate_reject_post({"candidate_id": create2["data"].get("candidate_id"), "reason": "not now"}, script, cand, audit)
+    test("G18: candidate rejected", reject["ok"] and reject["data"]["status"] == "rejected")
+    archive = handle_growth_archive_post({"goal_id": gid}, script, goals, audit)
+    test("G19: goal archived", archive["ok"] and archive["data"]["status"] == "archived")
+    missing_goal = handle_growth_archive_post({"goal_id": "goal_missing"}, script, goals, audit)
+    test("G20: missing goal archive rejected", not missing_goal["ok"] and missing_goal["error"]["code"] == "GOAL_NOT_FOUND")
+    bad_secret = handle_growth_goals_post({"candidate_id": cid, "success_criteria": "token=abcdefghijklmnopqrstuvwxyz"}, script, cand, goals, audit)
+    test("G21: secret success criteria rejected", not bad_secret["ok"] and bad_secret["error"]["code"] == "SECRET_DETECTED")
+
+
+def test_growth_plan_flow(tmpdir):
+    print("\n--- G22-G28: Growth plan flow ---")
+    from scripts.api_server import (
+        handle_growth_capacity_post, handle_growth_weekly_post,
+        handle_growth_tasks_post, handle_growth_task_status_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "growth_plan.py"
+    cap = tmpdir / "capacity.jsonl"
+    weekly = tmpdir / "weekly.jsonl"
+    tasks = tmpdir / "tasks.jsonl"
+    audit = tmpdir / "audit.jsonl"
+    capacity = handle_growth_capacity_post({"available_hours": 3, "active_goal_ids": ["g1", "g2"]}, script, cap, audit)
+    test("G22: capacity created", capacity["ok"] and capacity["data"].get("budget_id"))
+    bad_capacity = handle_growth_capacity_post({"available_hours": "abc"}, script, cap, audit)
+    test("G23: invalid capacity hours rejected", not bad_capacity["ok"] and bad_capacity["error"]["code"] == "INVALID_HOURS")
+    weekly_resp = handle_growth_weekly_post({"week_start": "2026-06-08", "goal_ids": ["g1"]}, script, weekly, audit)
+    test("G24: weekly plan created", weekly_resp["ok"] and weekly_resp["data"].get("weekly_plan_id"))
+    weekly_bad = handle_growth_weekly_post({"week_start": ""}, script, weekly, audit)
+    test("G25: missing week start rejected", not weekly_bad["ok"] and weekly_bad["error"]["code"] == "MISSING_WEEK_START")
+    task = handle_growth_tasks_post({"date": "2026-06-08", "goal_id": "g1", "title": "Implement growth API"}, script, tasks, audit)
+    tid = task["data"].get("task_id")
+    test("G26: daily task created", task["ok"] and tid)
+    status = handle_growth_task_status_post({"task_id": tid, "status": "done"}, script, tasks, audit)
+    test("G27: task status updated", status["ok"] and status["data"]["status"] == "done")
+    nf = handle_growth_task_status_post({"task_id": "task_missing", "status": "done"}, script, tasks, audit)
+    test("G28: missing task status rejected", not nf["ok"] and nf["error"]["code"] == "TASK_NOT_FOUND")
+
+
+def test_growth_review_flow(tmpdir):
+    print("\n--- G29-G34: Growth review flow ---")
+    from scripts.api_server import (
+        handle_growth_reviews_post, handle_growth_adjustments_post,
+        handle_growth_handoffs_post, handle_growth_archive_post,
+    )
+    review_script = PROJECT_ROOT / "scripts" / "growth_review.py"
+    goal_script = PROJECT_ROOT / "scripts" / "growth_goal.py"
+    reviews = tmpdir / "reviews.jsonl"
+    adjustments = tmpdir / "adjustments.jsonl"
+    goals = tmpdir / "goals.jsonl"
+    audit = tmpdir / "audit.jsonl"
+    review = handle_growth_reviews_post({"goal_id": "goal_1", "self_rating": 3, "blockers": "time"}, review_script, reviews, audit)
+    test("G29: review created", review["ok"] and review["data"].get("review_id"))
+    missing_review = handle_growth_reviews_post({"goal_id": ""}, review_script, reviews, audit)
+    test("G30: missing review goal rejected", not missing_review["ok"] and missing_review["error"]["code"] == "MISSING_ID")
+    adjustment = handle_growth_adjustments_post({"goal_id": "goal_1", "proposal_type": "reduce_scope", "reason": "overloaded", "impact": "high"}, review_script, adjustments, audit)
+    test("G31: high impact adjustment requires approval", adjustment["ok"] and adjustment["data"].get("approval_required") is True)
+    bad_adjustment = handle_growth_adjustments_post({"goal_id": "goal_1", "proposal_type": "", "reason": ""}, review_script, adjustments, audit)
+    test("G32: missing adjustment type rejected", not bad_adjustment["ok"] and bad_adjustment["error"]["code"] == "MISSING_ARGS")
+    missing_handoff = handle_growth_handoffs_post({"goal_id": ""}, review_script, audit)
+    test("G33: missing handoff goal rejected", not missing_handoff["ok"] and missing_handoff["error"]["code"] == "MISSING_ID")
+    missing_archive = handle_growth_archive_post({"goal_id": ""}, goal_script, goals, audit)
+    test("G34: missing archive goal rejected", not missing_archive["ok"] and missing_archive["error"]["code"] == "MISSING_ID")
+
+
+def test_growth_api_no_shell():
+    print("\n--- G35: Growth API no shell=True ---")
+    with open(PROJECT_ROOT / "scripts" / "api_server.py", "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    code = "".join([l for l in lines if "no shell=True" not in l and not l.strip().startswith("#")])
+    test("G35: no shell=True in Growth API", "shell=True" not in code)
+
+
+def test_growth_path_safety():
+    print("\n--- G36: Growth paths under project root ---")
+    from scripts.api_server import (
+        GROWTH_CANDIDATES_PATH, GROWTH_GOALS_PATH, GROWTH_CAPACITY_PATH,
+        GROWTH_WEEKLY_PATH, GROWTH_TASKS_PATH, GROWTH_REVIEWS_PATH,
+        GROWTH_ADJUSTMENTS_PATH, GROWTH_HANDOFFS_PATH,
+    )
+    paths = [GROWTH_CANDIDATES_PATH, GROWTH_GOALS_PATH, GROWTH_CAPACITY_PATH,
+             GROWTH_WEEKLY_PATH, GROWTH_TASKS_PATH, GROWTH_REVIEWS_PATH,
+             GROWTH_ADJUSTMENTS_PATH, GROWTH_HANDOFFS_PATH]
+    ok = all(str(p).startswith(str(PROJECT_ROOT)) for p in paths)
+    test("G36: all Growth paths under PROJECT_ROOT", ok)
 
 
 # ─── Memory API Tests (Task 09-B) ───

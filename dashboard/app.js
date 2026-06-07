@@ -1,5 +1,5 @@
 /* OnePal Dashboard App - Task 07-B
- * API client, state management, and DOM rendering for 5 panels.
+ * API client, state management, and DOM rendering for 8 panels.
  * Uses fetch() exclusively. Zero external dependencies. Zero CDN.
  * Avoids eval / new Function / direct file access.
  */
@@ -399,6 +399,7 @@ function refreshAll() {
   refreshTasks();
   refreshTaskRuns();
   refreshTrace();
+  refreshGrowth();
   setTimeout(updateApiBadge, 1000);
 }
 
@@ -412,6 +413,7 @@ function startAutoRefresh() {
     refreshTasks();
     refreshTaskRuns();
     refreshTrace();
+    refreshGrowth();
     updateApiBadge();
   }, REFRESH_MS);
 }
@@ -549,6 +551,126 @@ function refreshResearch() {
   ]).finally(function(){renderResearch()});
 }
 if(researchRefreshBtn){researchRefreshBtn.addEventListener('click',refreshResearch)}
+
+// Growth Center Panel
+var growthRefreshBtn = document.getElementById('growth-refresh-btn');
+state.growth = {
+  candidates: { status:'loading', data:[], error:null },
+  goals: { status:'loading', data:[], error:null },
+  capacity: { status:'loading', data:[], error:null },
+  weekly: { status:'loading', data:[], error:null },
+  tasks: { status:'loading', data:[], error:null },
+  reviews: { status:'loading', data:[], error:null },
+  adjustments: { status:'loading', data:[], error:null },
+  handoffs: { status:'loading', data:[], error:null }
+};
+
+function shortText(value, max) {
+  var text = value !== null && value !== undefined ? String(value) : '';
+  return text.length > max ? text.substring(0, max) : text;
+}
+
+function idCell(value) {
+  return el('span', 'mono', shortText(value || '', 14));
+}
+
+function appendGrowthTable(container, title, columns, rows, emptyText) {
+  var section = el('div', 'growth-section');
+  section.appendChild(el('h3', '', title + ' (' + rows.length + ')'));
+  if (rows.length === 0) {
+    section.appendChild(el('div', 'empty', emptyText || 'No data'));
+  } else {
+    section.appendChild(buildTable(columns, rows));
+  }
+  container.appendChild(section);
+}
+
+function renderGrowth(body) {
+  var container = body || document.getElementById('growth-body');
+  if (state.growth.candidates.status === 'loading') { showLoading(container); return; }
+  if (state.growth.candidates.status === 'error') { showError(container, state.growth.candidates.error, refreshGrowth); return; }
+
+  var candidates = state.growth.candidates.data || [];
+  var goals = state.growth.goals.data || [];
+  var capacity = state.growth.capacity.data || [];
+  var weekly = state.growth.weekly.data || [];
+  var tasks = state.growth.tasks.data || [];
+  var reviews = state.growth.reviews.data || [];
+  var adjustments = state.growth.adjustments.data || [];
+
+  container.innerHTML = '';
+
+  var formDiv = el('div', 'memory-form');
+  formDiv.appendChild(el('h3', '', 'Create Candidate'));
+  var title = el('input'); title.type = 'text'; title.id = 'growth-title'; title.placeholder = 'Goal title'; title.maxLength = 2000; formDiv.appendChild(title);
+  var area = el('select'); area.id = 'growth-area';
+  ['ai_engineering','data_analysis','career','research','communication','productivity','personal_project','other'].forEach(function(v){var o=el('option');o.value=v;o.textContent=v;area.appendChild(o)});
+  formDiv.appendChild(area);
+  var reason = el('input'); reason.type = 'text'; reason.id = 'growth-reason'; reason.placeholder = 'Reason'; reason.maxLength = 2000; formDiv.appendChild(reason);
+  var btn = el('button', 'btn btn-primary', 'Create');
+  btn.onclick = function() {
+    var t = document.getElementById('growth-title').value.trim();
+    var r = document.getElementById('growth-reason').value.trim();
+    if (!t) { document.getElementById('growth-result').textContent = 'Title required'; return; }
+    apiPost('/growth/candidates', {title: t, goal_area: document.getElementById('growth-area').value, reason: r, source_type: 'manual'})
+      .then(function(resp){ document.getElementById('growth-result').textContent = 'Created: ' + (resp.data && resp.data.candidate_id); refreshGrowth(); })
+      .catch(function(e){ document.getElementById('growth-result').textContent = 'Error: ' + e.message; });
+  };
+  formDiv.appendChild(btn);
+  var result = el('span', ''); result.id = 'growth-result'; formDiv.appendChild(result);
+  container.appendChild(formDiv);
+
+  appendGrowthTable(container, 'Candidates', ['ID','Title','Area','Status','Action'], candidates.slice(0, 10).map(function(c) {
+    return [
+      idCell(c.candidate_id),
+      shortText(c.title, 48),
+      c.goal_area || '?',
+      badge(c.status || '?', 'status-' + (c.status || '')),
+      (c.status === 'captured' ? (function(){var a=el('button','btn btn-sm','Accept');a.onclick=function(){apiPost('/growth/candidates/accept',{candidate_id:c.candidate_id}).then(function(){refreshGrowth()}).catch(function(e){alert(e.message)})};return a;})() : el('span','',''))
+    ];
+  }), 'No growth candidates');
+
+  appendGrowthTable(container, 'Goals', ['ID','Title','Area','Status','Priority'], goals.slice(0, 10).map(function(g) {
+    return [idCell(g.goal_id), shortText(g.title, 54), g.goal_area || '?', badge(g.status || '?', 'status-' + (g.status || '')), g.priority || '?'];
+  }), 'No active goals');
+
+  appendGrowthTable(container, 'Capacity', ['ID','Hours','Energy','Overload','Created'], capacity.slice(0, 10).map(function(c) {
+    return [idCell(c.budget_id), c.available_hours, c.energy_level || '?', c.overload_warning ? 'yes' : 'no', shortText(c.created_at, 19)];
+  }), 'No capacity budgets');
+
+  appendGrowthTable(container, 'Weekly Plans', ['ID','Week','Theme','Status','Goals'], weekly.slice(0, 10).map(function(w) {
+    return [idCell(w.weekly_plan_id), w.week_start || '?', shortText(w.focus_theme, 32), badge(w.status || '?', 'status-' + (w.status || '')), (w.goal_ids || []).length];
+  }), 'No weekly plans');
+
+  appendGrowthTable(container, 'Daily Tasks', ['ID','Date','Title','Status','Minutes'], tasks.slice(0, 10).map(function(t) {
+    return [idCell(t.task_id), t.date || '?', shortText(t.title, 48), badge(t.status || '?', 'status-' + (t.status || '')), t.estimated_minutes || ''];
+  }), 'No daily tasks');
+
+  appendGrowthTable(container, 'Reviews', ['ID','Goal','Rating','Status','Blockers'], reviews.slice(0, 10).map(function(r) {
+    return [idCell(r.review_id), idCell(r.goal_id), r.self_rating || '', badge(r.status || '?', 'status-' + (r.status || '')), (r.blockers || []).length];
+  }), 'No reviews');
+
+  appendGrowthTable(container, 'Adjustments', ['ID','Goal','Type','Risk','Approval'], adjustments.slice(0, 10).map(function(a) {
+    return [idCell(a.proposal_id), idCell(a.goal_id), a.proposal_type || '?', a.risk_level || '?', a.approval_required ? 'required' : 'not required'];
+  }), 'No adjustments');
+}
+
+function refreshGrowth() {
+  Object.keys(state.growth).forEach(function(k){ state.growth[k].status = 'loading'; });
+  renderGrowth();
+  Promise.all([
+    apiGet('/growth/candidates?limit=20').then(function(r){state.growth.candidates.status='success';state.growth.candidates.data=r.data.candidates||[]}).catch(function(e){state.growth.candidates.status='error';state.growth.candidates.error=e.message}),
+    apiGet('/growth/goals?limit=20').then(function(r){state.growth.goals.status='success';state.growth.goals.data=r.data.goals||[]}).catch(function(e){state.growth.goals.status='error';state.growth.goals.error=e.message}),
+    apiGet('/growth/capacity?limit=20').then(function(r){state.growth.capacity.status='success';state.growth.capacity.data=r.data.capacity||[]}).catch(function(e){state.growth.capacity.status='error';state.growth.capacity.error=e.message}),
+    apiGet('/growth/weekly-plans?limit=20').then(function(r){state.growth.weekly.status='success';state.growth.weekly.data=r.data.weekly_plans||[]}).catch(function(e){state.growth.weekly.status='error';state.growth.weekly.error=e.message}),
+    apiGet('/growth/daily-tasks?limit=20').then(function(r){state.growth.tasks.status='success';state.growth.tasks.data=r.data.daily_tasks||[]}).catch(function(e){state.growth.tasks.status='error';state.growth.tasks.error=e.message}),
+    apiGet('/growth/reviews?limit=20').then(function(r){state.growth.reviews.status='success';state.growth.reviews.data=r.data.reviews||[]}).catch(function(e){state.growth.reviews.status='error';state.growth.reviews.error=e.message}),
+    apiGet('/growth/adjustments?limit=20').then(function(r){state.growth.adjustments.status='success';state.growth.adjustments.data=r.data.adjustments||[]}).catch(function(e){state.growth.adjustments.status='error';state.growth.adjustments.error=e.message}),
+    apiGet('/growth/handoffs?limit=20').then(function(r){state.growth.handoffs.status='success';state.growth.handoffs.data=r.data.handoffs||[]}).catch(function(e){state.growth.handoffs.status='error';state.growth.handoffs.error=e.message})
+  ]).finally(function(){renderGrowth()});
+}
+
+if(growthRefreshBtn){growthRefreshBtn.addEventListener('click',refreshGrowth)}
 
 // ─── Init ───
 refreshAll();

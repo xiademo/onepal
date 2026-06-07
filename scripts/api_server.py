@@ -43,10 +43,23 @@ RESEARCH_CARDS_PATH = PROJECT_ROOT / "research" / "cognition" / "cognition_cards
 RESEARCH_HANDOFFS_DIR = PROJECT_ROOT / "research" / "handoffs"
 RESEARCH_PACKET_SCRIPT = PROJECT_ROOT / "scripts" / "research_packet.py"
 COGNITION_CARD_SCRIPT = PROJECT_ROOT / "scripts" / "cognition_card.py"
+GROWTH_GOAL_SCRIPT = PROJECT_ROOT / "scripts" / "growth_goal.py"
+GROWTH_PLAN_SCRIPT = PROJECT_ROOT / "scripts" / "growth_plan.py"
+GROWTH_REVIEW_SCRIPT = PROJECT_ROOT / "scripts" / "growth_review.py"
+GROWTH_CANDIDATES_PATH = PROJECT_ROOT / "growth" / "candidates" / "goal_candidates.jsonl"
+GROWTH_GOALS_PATH = PROJECT_ROOT / "growth" / "goals" / "goal_contracts.jsonl"
+GROWTH_CAPACITY_PATH = PROJECT_ROOT / "growth" / "capacity" / "capacity_budgets.jsonl"
+GROWTH_WEEKLY_PATH = PROJECT_ROOT / "growth" / "plans" / "weekly_plans.jsonl"
+GROWTH_TASKS_PATH = PROJECT_ROOT / "growth" / "plans" / "daily_tasks.jsonl"
+GROWTH_REVIEWS_PATH = PROJECT_ROOT / "growth" / "reviews" / "growth_reviews.jsonl"
+GROWTH_ADJUSTMENTS_PATH = PROJECT_ROOT / "growth" / "adjustments" / "plan_adjustment_proposals.jsonl"
+GROWTH_HANDOFFS_PATH = PROJECT_ROOT / "growth" / "handoffs" / "growth_handoffs.jsonl"
+GROWTH_AUDIT_PATH = PROJECT_ROOT / "logs" / "growth_audit.jsonl"
 
 MAX_LIMIT = 100
 MAX_COMMAND_LENGTH = 2000
 MAX_MEMORY_CONTENT = 4000
+MAX_GROWTH_CONTENT = 2000
 
 ALLOWED_HOSTS = {"127.0.0.1", "localhost"}
 
@@ -519,6 +532,318 @@ def handle_research_archive_post(body, script_path):
     return build_response(True, data={"target_id": tid, "target_type": ttype, "status": "archived" if ok else "error"})
 
 
+# --- Growth API handlers ---
+
+def _redact_growth_value(value):
+    if isinstance(value, str):
+        is_redacted, redacted = _redact(value)
+        return redacted if is_redacted else value
+    if isinstance(value, list):
+        return [_redact_growth_value(v) for v in value]
+    if isinstance(value, dict):
+        return _redact_growth_record(value)
+    return value
+
+
+def _redact_growth_record(record):
+    redacted = {}
+    touched = False
+    for key, value in (record or {}).items():
+        safe_value = _redact_growth_value(value)
+        if safe_value == "[REDACTED]":
+            touched = True
+        redacted[key] = safe_value
+    if touched:
+        redacted["redacted"] = True
+    return redacted
+
+
+def _growth_get(path, key, limit):
+    results, skipped = read_jsonl(path, limit)
+    safe = [_redact_growth_record(r) for r in results]
+    return build_response(True, data={key: safe[-limit:]}, meta_extra={
+        "total": len(safe),
+        "skipped": skipped,
+        "limit": limit,
+        "source": _safe_source(path, "none") if path.exists() else "none",
+    })
+
+
+def handle_growth_candidates_get(path, limit):
+    return _growth_get(path, "candidates", limit)
+
+
+def handle_growth_goals_get(path, limit):
+    return _growth_get(path, "goals", limit)
+
+
+def handle_growth_capacity_get(path, limit):
+    return _growth_get(path, "capacity", limit)
+
+
+def handle_growth_weekly_get(path, limit):
+    return _growth_get(path, "weekly_plans", limit)
+
+
+def handle_growth_tasks_get(path, limit):
+    return _growth_get(path, "daily_tasks", limit)
+
+
+def handle_growth_reviews_get(path, limit):
+    return _growth_get(path, "reviews", limit)
+
+
+def handle_growth_adjustments_get(path, limit):
+    return _growth_get(path, "adjustments", limit)
+
+
+def handle_growth_handoffs_get(path, limit):
+    return _growth_get(path, "handoffs", limit)
+
+
+def _run_growth_cmd(cmd_args, timeout=30):
+    return _run_memory_cmd(cmd_args, timeout=timeout)
+
+
+def _script_error(data, code="SCRIPT_ERROR"):
+    msg = data.get("error") or data.get("reason") or "growth script failed"
+    return build_response(False, error={"code": code, "message": str(msg)})
+
+
+def _csv(value):
+    if isinstance(value, list):
+        return ",".join(str(v).strip() for v in value if str(v).strip())
+    return str(value or "")
+
+
+def _status_for(resp):
+    if resp.get("ok"):
+        return 200
+    code = (resp.get("error") or {}).get("code")
+    return 404 if code in {"CANDIDATE_NOT_FOUND", "GOAL_NOT_FOUND", "TASK_NOT_FOUND", "NOT_FOUND"} else 400
+
+
+def handle_growth_candidates_post(body, script_path, candidates_path=GROWTH_CANDIDATES_PATH, audit_path=GROWTH_AUDIT_PATH):
+    title = (body.get("title") or "").strip()
+    reason = (body.get("reason") or "").strip()
+    if not title:
+        return build_response(False, error={"code": "EMPTY_TITLE", "message": "title must not be empty"})
+    if len(title) > MAX_GROWTH_CONTENT or len(reason) > MAX_GROWTH_CONTENT:
+        return build_response(False, error={"code": "CONTENT_TOO_LONG", "message": f"growth content must be <= {MAX_GROWTH_CONTENT} chars"})
+    if _redact(title)[0] or _redact(reason)[0]:
+        return build_response(False, error={"code": "SECRET_DETECTED", "message": "secret-like content rejected"})
+
+    ok, data, ec = _run_growth_cmd([
+        str(script_path), "candidate-create",
+        "--source-type", body.get("source_type", "manual"),
+        "--title", title,
+        "--goal-area", body.get("goal_area", "other"),
+        "--reason", reason,
+        "--confidence", str(body.get("confidence", 0.5)),
+        "--priority", body.get("priority", "P2"),
+        "--candidates-log", str(candidates_path),
+        "--audit-log", str(audit_path),
+    ])
+    if not ok or ec != 0 or data.get("status") == "rejected":
+        code = "SECRET_DETECTED" if data.get("reason") == "secret" else "SCRIPT_ERROR"
+        return _script_error(data, code)
+    return build_response(True, data={"candidate_id": data.get("candidate", {}).get("candidate_id"), "status": data.get("status")})
+
+
+def handle_growth_candidate_accept_post(body, script_path, candidates_path=GROWTH_CANDIDATES_PATH, audit_path=GROWTH_AUDIT_PATH):
+    cid = (body.get("candidate_id") or "").strip()
+    if not cid:
+        return build_response(False, error={"code": "MISSING_ID", "message": "candidate_id required"})
+    ok, data, ec = _run_growth_cmd([str(script_path), "candidate-accept", "--candidate-id", cid, "--candidates-log", str(candidates_path), "--audit-log", str(audit_path)])
+    if not ok or ec != 0:
+        return _script_error(data, "CANDIDATE_NOT_FOUND" if data.get("error") == "not found" else "SCRIPT_ERROR")
+    return build_response(True, data={"candidate_id": cid, "status": data.get("status", "accepted")})
+
+
+def handle_growth_candidate_reject_post(body, script_path, candidates_path=GROWTH_CANDIDATES_PATH, audit_path=GROWTH_AUDIT_PATH):
+    cid = (body.get("candidate_id") or "").strip()
+    if not cid:
+        return build_response(False, error={"code": "MISSING_ID", "message": "candidate_id required"})
+    ok, data, ec = _run_growth_cmd([str(script_path), "candidate-reject", "--candidate-id", cid, "--reason", body.get("reason", "rejected"), "--candidates-log", str(candidates_path), "--audit-log", str(audit_path)])
+    if not ok or ec != 0:
+        return _script_error(data, "CANDIDATE_NOT_FOUND" if data.get("error") == "not found" else "SCRIPT_ERROR")
+    return build_response(True, data={"candidate_id": cid, "status": data.get("status", "rejected")})
+
+
+def handle_growth_goals_post(body, script_path, candidates_path=GROWTH_CANDIDATES_PATH, goals_path=GROWTH_GOALS_PATH, audit_path=GROWTH_AUDIT_PATH):
+    cid = (body.get("candidate_id") or "").strip()
+    success = (body.get("success_criteria") or "").strip()
+    if not cid:
+        return build_response(False, error={"code": "MISSING_ID", "message": "candidate_id required"})
+    if not success:
+        return build_response(False, error={"code": "MISSING_SUCCESS", "message": "success_criteria required"})
+    if _redact(success)[0]:
+        return build_response(False, error={"code": "SECRET_DETECTED", "message": "secret-like content rejected"})
+    ok, data, ec = _run_growth_cmd([
+        str(script_path), "goal-create",
+        "--candidate-id", cid,
+        "--success-criteria", success,
+        "--minimum-result", body.get("minimum_result", body.get("minimum_viable_result", "")),
+        "--priority", body.get("priority", "P2"),
+        "--candidates-log", str(candidates_path),
+        "--goals-log", str(goals_path),
+        "--audit-log", str(audit_path),
+    ])
+    if not ok or ec != 0:
+        err = data.get("error")
+        if err == "candidate not found":
+            return _script_error(data, "CANDIDATE_NOT_FOUND")
+        if err == "candidate not accepted":
+            return _script_error(data, "NOT_ACCEPTED")
+        return _script_error(data)
+    return build_response(True, data={"goal_id": data.get("goal", {}).get("goal_id"), "status": data.get("status")})
+
+
+def handle_growth_capacity_post(body, script_path, capacity_path=GROWTH_CAPACITY_PATH, audit_path=GROWTH_AUDIT_PATH):
+    try:
+        hours = float(body.get("available_hours", 8))
+    except (TypeError, ValueError):
+        return build_response(False, error={"code": "INVALID_HOURS", "message": "available_hours must be numeric"})
+    ok, data, ec = _run_growth_cmd([
+        str(script_path), "capacity-create",
+        "--period-type", body.get("period_type", "weekly"),
+        "--available-hours", str(hours),
+        "--focus-slots", str(body.get("focus_slots", 2)),
+        "--energy-level", body.get("energy_level", "medium"),
+        "--active-goal-ids", _csv(body.get("active_goal_ids", "")),
+        "--capacity-log", str(capacity_path),
+        "--audit-log", str(audit_path),
+    ])
+    if not ok or ec != 0:
+        return _script_error(data)
+    return build_response(True, data={"budget_id": data.get("budget", {}).get("budget_id"), "overload_warning": data.get("overload_warning"), "status": data.get("status")})
+
+
+def handle_growth_weekly_post(body, script_path, weekly_path=GROWTH_WEEKLY_PATH, audit_path=GROWTH_AUDIT_PATH):
+    week_start = (body.get("week_start") or "").strip()
+    if not week_start:
+        return build_response(False, error={"code": "MISSING_WEEK_START", "message": "week_start required"})
+    ok, data, ec = _run_growth_cmd([
+        str(script_path), "weekly-create",
+        "--week-start", week_start,
+        "--goal-ids", _csv(body.get("goal_ids", "")),
+        "--focus-theme", body.get("focus_theme", ""),
+        "--weekly-log", str(weekly_path),
+        "--audit-log", str(audit_path),
+    ])
+    if not ok or ec != 0:
+        return _script_error(data)
+    return build_response(True, data={"weekly_plan_id": data.get("weekly_plan", {}).get("weekly_plan_id"), "status": data.get("status")})
+
+
+def handle_growth_tasks_post(body, script_path, tasks_path=GROWTH_TASKS_PATH, audit_path=GROWTH_AUDIT_PATH):
+    title = (body.get("title") or "").strip()
+    goal_id = (body.get("goal_id") or "").strip()
+    date = (body.get("date") or "").strip()
+    if not title:
+        return build_response(False, error={"code": "EMPTY_TITLE", "message": "title must not be empty"})
+    if not goal_id or not date:
+        return build_response(False, error={"code": "MISSING_ARGS", "message": "date and goal_id required"})
+    if len(title) > MAX_GROWTH_CONTENT:
+        return build_response(False, error={"code": "CONTENT_TOO_LONG", "message": f"title must be <= {MAX_GROWTH_CONTENT} chars"})
+    if _redact(title)[0]:
+        return build_response(False, error={"code": "SECRET_DETECTED", "message": "secret-like content rejected"})
+    ok, data, ec = _run_growth_cmd([
+        str(script_path), "task-create",
+        "--date", date,
+        "--goal-id", goal_id,
+        "--title", title,
+        "--task-type", body.get("task_type", "study"),
+        "--estimated-minutes", str(body.get("estimated_minutes", 30)),
+        "--tasks-log", str(tasks_path),
+        "--audit-log", str(audit_path),
+    ])
+    if not ok or ec != 0:
+        return _script_error(data)
+    return build_response(True, data={"task_id": data.get("task", {}).get("task_id"), "status": data.get("status")})
+
+
+def handle_growth_task_status_post(body, script_path, tasks_path=GROWTH_TASKS_PATH, audit_path=GROWTH_AUDIT_PATH):
+    tid = (body.get("task_id") or "").strip()
+    status = (body.get("status") or "").strip()
+    if not tid or not status:
+        return build_response(False, error={"code": "MISSING_ARGS", "message": "task_id and status required"})
+    ok, data, ec = _run_growth_cmd([str(script_path), "task-status", "--task-id", tid, "--status", status, "--tasks-log", str(tasks_path), "--audit-log", str(audit_path)])
+    if not ok or ec != 0:
+        return _script_error(data, "TASK_NOT_FOUND" if data.get("error") == "not found" else "SCRIPT_ERROR")
+    return build_response(True, data={"task_id": tid, "status": data.get("new_status", status)})
+
+
+def handle_growth_reviews_post(body, script_path, reviews_path=GROWTH_REVIEWS_PATH, audit_path=GROWTH_AUDIT_PATH):
+    gid = (body.get("goal_id") or "").strip()
+    if not gid:
+        return build_response(False, error={"code": "MISSING_ID", "message": "goal_id required"})
+    ok, data, ec = _run_growth_cmd([
+        str(script_path), "review-create",
+        "--goal-id", gid,
+        "--period-type", body.get("period_type", "weekly"),
+        "--self-rating", str(body.get("self_rating", 3)),
+        "--blockers", body.get("blockers", ""),
+        "--lessons", body.get("lessons", body.get("lessons_learned", "")),
+        "--evidence", body.get("evidence", body.get("evidence_summary", "")),
+        "--adjustment-needed", str(int(bool(body.get("adjustment_needed", False)))),
+        "--reviews-log", str(reviews_path),
+        "--audit-log", str(audit_path),
+    ])
+    if not ok or ec != 0:
+        return _script_error(data)
+    return build_response(True, data={"review_id": data.get("review", {}).get("review_id"), "repeated_blocker": data.get("repeated_blocker"), "status": data.get("status")})
+
+
+def handle_growth_adjustments_post(body, script_path, adjustments_path=GROWTH_ADJUSTMENTS_PATH, audit_path=GROWTH_AUDIT_PATH):
+    gid = (body.get("goal_id") or "").strip()
+    proposal_type = (body.get("proposal_type") or "").strip()
+    if not gid or not proposal_type:
+        return build_response(False, error={"code": "MISSING_ARGS", "message": "goal_id and proposal_type required"})
+    reason = (body.get("reason") or "").strip()
+    if len(reason) > MAX_GROWTH_CONTENT:
+        return build_response(False, error={"code": "CONTENT_TOO_LONG", "message": f"reason must be <= {MAX_GROWTH_CONTENT} chars"})
+    if _redact(reason)[0]:
+        return build_response(False, error={"code": "SECRET_DETECTED", "message": "secret-like content rejected"})
+    ok, data, ec = _run_growth_cmd([
+        str(script_path), "adjustment-create",
+        "--goal-id", gid,
+        "--proposal-type", proposal_type,
+        "--reason", reason,
+        "--proposed-change", body.get("proposed_change", ""),
+        "--impact", body.get("impact", "medium"),
+        "--adjustments-log", str(adjustments_path),
+        "--audit-log", str(audit_path),
+    ])
+    if not ok or ec != 0:
+        return _script_error(data)
+    adj = data.get("adjustment", {})
+    return build_response(True, data={"proposal_id": adj.get("proposal_id"), "approval_required": adj.get("approval_required"), "risk_level": adj.get("risk_level"), "status": data.get("status")})
+
+
+def handle_growth_handoffs_post(body, script_path, audit_path=GROWTH_AUDIT_PATH):
+    gid = (body.get("goal_id") or "").strip()
+    if not gid:
+        return build_response(False, error={"code": "MISSING_ID", "message": "goal_id required"})
+    notes = (body.get("notes") or "").strip()
+    if _redact(notes)[0]:
+        return build_response(False, error={"code": "SECRET_DETECTED", "message": "secret-like content rejected"})
+    ok, data, ec = _run_growth_cmd([str(script_path), "memory-handoff", "--goal-id", gid, "--notes", notes, "--audit-log", str(audit_path)])
+    if not ok or ec != 0:
+        return _script_error(data)
+    return build_response(True, data={"goal_id": gid, "status": data.get("status"), "delegated_to": data.get("delegated_to"), "note": "candidate only; not written to memory store"})
+
+
+def handle_growth_archive_post(body, script_path, goals_path=GROWTH_GOALS_PATH, audit_path=GROWTH_AUDIT_PATH):
+    gid = (body.get("goal_id") or "").strip()
+    if not gid:
+        return build_response(False, error={"code": "MISSING_ID", "message": "goal_id required"})
+    ok, data, ec = _run_growth_cmd([str(script_path), "goal-archive", "--goal-id", gid, "--goals-log", str(goals_path), "--audit-log", str(audit_path)])
+    if not ok or ec != 0:
+        return _script_error(data, "GOAL_NOT_FOUND" if data.get("error") == "not found" else "SCRIPT_ERROR")
+    return build_response(True, data={"goal_id": gid, "status": data.get("status", "archived")})
+
+
 class OnePalHandler(BaseHTTPRequestHandler):
     """HTTP request handler for OnePal API."""
 
@@ -540,6 +865,18 @@ class OnePalHandler(BaseHTTPRequestHandler):
     research_cards_path = RESEARCH_CARDS_PATH
     research_packet_script = RESEARCH_PACKET_SCRIPT
     cognition_card_script = COGNITION_CARD_SCRIPT
+    growth_goal_script = GROWTH_GOAL_SCRIPT
+    growth_plan_script = GROWTH_PLAN_SCRIPT
+    growth_review_script = GROWTH_REVIEW_SCRIPT
+    growth_candidates_path = GROWTH_CANDIDATES_PATH
+    growth_goals_path = GROWTH_GOALS_PATH
+    growth_capacity_path = GROWTH_CAPACITY_PATH
+    growth_weekly_path = GROWTH_WEEKLY_PATH
+    growth_tasks_path = GROWTH_TASKS_PATH
+    growth_reviews_path = GROWTH_REVIEWS_PATH
+    growth_adjustments_path = GROWTH_ADJUSTMENTS_PATH
+    growth_handoffs_path = GROWTH_HANDOFFS_PATH
+    growth_audit_path = GROWTH_AUDIT_PATH
 
     def _send_json(self, status, data):
         body = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
@@ -613,6 +950,32 @@ class OnePalHandler(BaseHTTPRequestHandler):
                 self._send_json(200, resp)
             elif path == "/research/handoffs":
                 resp = handle_research_handoffs_get(limit)
+                self._send_json(200, resp)
+
+            # Growth endpoints
+            elif path == "/growth/candidates":
+                resp = handle_growth_candidates_get(self.growth_candidates_path, limit)
+                self._send_json(200, resp)
+            elif path == "/growth/goals":
+                resp = handle_growth_goals_get(self.growth_goals_path, limit)
+                self._send_json(200, resp)
+            elif path == "/growth/capacity":
+                resp = handle_growth_capacity_get(self.growth_capacity_path, limit)
+                self._send_json(200, resp)
+            elif path == "/growth/weekly-plans":
+                resp = handle_growth_weekly_get(self.growth_weekly_path, limit)
+                self._send_json(200, resp)
+            elif path == "/growth/daily-tasks":
+                resp = handle_growth_tasks_get(self.growth_tasks_path, limit)
+                self._send_json(200, resp)
+            elif path == "/growth/reviews":
+                resp = handle_growth_reviews_get(self.growth_reviews_path, limit)
+                self._send_json(200, resp)
+            elif path == "/growth/adjustments":
+                resp = handle_growth_adjustments_get(self.growth_adjustments_path, limit)
+                self._send_json(200, resp)
+            elif path == "/growth/handoffs":
+                resp = handle_growth_handoffs_get(self.growth_handoffs_path, limit)
                 self._send_json(200, resp)
 
             else:
@@ -689,6 +1052,44 @@ class OnePalHandler(BaseHTTPRequestHandler):
                 resp = handle_research_archive_post(body_json, self.research_packet_script)
                 self._send_json(200 if resp.get("ok") else 400, resp)
 
+            # Growth POST endpoints
+            elif path == "/growth/candidates":
+                resp = handle_growth_candidates_post(body_json, self.growth_goal_script, self.growth_candidates_path, self.growth_audit_path)
+                self._send_json(_status_for(resp), resp)
+            elif path == "/growth/candidates/accept":
+                resp = handle_growth_candidate_accept_post(body_json, self.growth_goal_script, self.growth_candidates_path, self.growth_audit_path)
+                self._send_json(_status_for(resp), resp)
+            elif path == "/growth/candidates/reject":
+                resp = handle_growth_candidate_reject_post(body_json, self.growth_goal_script, self.growth_candidates_path, self.growth_audit_path)
+                self._send_json(_status_for(resp), resp)
+            elif path == "/growth/goals":
+                resp = handle_growth_goals_post(body_json, self.growth_goal_script, self.growth_candidates_path, self.growth_goals_path, self.growth_audit_path)
+                self._send_json(_status_for(resp), resp)
+            elif path == "/growth/capacity":
+                resp = handle_growth_capacity_post(body_json, self.growth_plan_script, self.growth_capacity_path, self.growth_audit_path)
+                self._send_json(_status_for(resp), resp)
+            elif path == "/growth/weekly-plans":
+                resp = handle_growth_weekly_post(body_json, self.growth_plan_script, self.growth_weekly_path, self.growth_audit_path)
+                self._send_json(_status_for(resp), resp)
+            elif path == "/growth/daily-tasks":
+                resp = handle_growth_tasks_post(body_json, self.growth_plan_script, self.growth_tasks_path, self.growth_audit_path)
+                self._send_json(_status_for(resp), resp)
+            elif path == "/growth/daily-tasks/status":
+                resp = handle_growth_task_status_post(body_json, self.growth_plan_script, self.growth_tasks_path, self.growth_audit_path)
+                self._send_json(_status_for(resp), resp)
+            elif path == "/growth/reviews":
+                resp = handle_growth_reviews_post(body_json, self.growth_review_script, self.growth_reviews_path, self.growth_audit_path)
+                self._send_json(_status_for(resp), resp)
+            elif path == "/growth/adjustments":
+                resp = handle_growth_adjustments_post(body_json, self.growth_review_script, self.growth_adjustments_path, self.growth_audit_path)
+                self._send_json(_status_for(resp), resp)
+            elif path == "/growth/handoffs":
+                resp = handle_growth_handoffs_post(body_json, self.growth_review_script, self.growth_audit_path)
+                self._send_json(_status_for(resp), resp)
+            elif path == "/growth/archive":
+                resp = handle_growth_archive_post(body_json, self.growth_goal_script, self.growth_goals_path, self.growth_audit_path)
+                self._send_json(_status_for(resp), resp)
+
             else:
                 self._send_json(404, build_response(False, error={
                     "code": "NOT_FOUND",
@@ -749,7 +1150,7 @@ def main():
 
     server = create_server(host, args.port, ConfiguredHandler)
     print(f"OnePal API Server listening on http://{host}:{args.port}")
-    print("Endpoints: GET /health /tasks /task-trees /task-runs /mas-trace  POST /command")
+    print("Endpoints: GET /health /tasks /task-trees /task-runs /mas-trace /memory/* /research/* /growth/*  POST /command")
     print("Press Ctrl+C to stop.")
     try:
         server.serve_forever()

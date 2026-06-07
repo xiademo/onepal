@@ -17,7 +17,13 @@ INDEX = DASHBOARD / "index.html"
 APP = DASHBOARD / "app.js"
 CSS = DASHBOARD / "style.css"
 
-ALLOWED_ENDPOINTS = {"/health", "/tasks", "/task-trees", "/task-runs", "/mas-trace", "/command"}
+ALLOWED_ENDPOINTS = {
+    "/health", "/tasks", "/task-trees", "/task-runs", "/mas-trace", "/command",
+    "/growth/candidates", "/growth/candidates/accept", "/growth/candidates/reject",
+    "/growth/goals", "/growth/capacity", "/growth/weekly-plans",
+    "/growth/daily-tasks", "/growth/daily-tasks/status", "/growth/reviews",
+    "/growth/adjustments", "/growth/handoffs", "/growth/archive",
+}
 FORBIDDEN_PATTERNS = [
     "runtime/", "logs/", "command_gateway.py", "runtime_runner.py",
     "request_action.py", "check_permission.py", "decide_proposal.py",
@@ -159,7 +165,7 @@ test("T28: app.js no direct memory/ access",
 test("T29: app.js no memory_candidate.py direct call", "memory_candidate.py" not in js)
 test("T30: app.js no memory_store.py direct call", "memory_store.py" not in js)
 test("T31: app.js no eval/new Function", "eval(" not in js_stripped and "new Function(" not in js_stripped)
-test("T32: app.js no require/fs/child_process", "require(" not in js and "fs." not in js)
+test("T32: app.js no require/fs/child_process", "require(" not in js and re.search(r"\bfs\s*\.", js) is None)
 
 # ─── Research Panel Tests (Task 11-B) ───
 print("\n--- T33-T42: Research Panel static checks ---")
@@ -176,6 +182,36 @@ test("T39: app.js no research/ direct access", "research/" not in js or "apiPost
 test("T40: app.js no research_packet.py call", "research_packet.py" not in js)
 test("T41: app.js no cognition_card.py call", "cognition_card.py" not in js)
 test("T42: app.js fetch uses research endpoints", "/research/sources" in js or "/research/packets" in js)
+
+# Growth Panel Tests (Task 13-B)
+print("\n--- T43-T64: Growth Panel static checks ---")
+test("T43: index.html contains growth-panel", 'id="growth-panel"' in html)
+test("T44: index.html growth refresh button", 'id="growth-refresh-btn"' in html)
+panel_count = len(re.findall(r'<section class="panel ', html))
+test("T45: index.html contains 8 panels", panel_count == 8, f"panels={panel_count}")
+test("T46: style.css growth panel full width", ".growth-panel" in css and "grid-column: 1 / -1" in css)
+test("T47: growth panel appears after research panel", html.find('id="research-panel"') < html.find('id="growth-panel"'))
+for label, ep in [
+    ("T48: app.js GET /growth/candidates", "/growth/candidates"),
+    ("T49: app.js GET /growth/goals", "/growth/goals"),
+    ("T50: app.js GET /growth/capacity", "/growth/capacity"),
+    ("T51: app.js GET /growth/weekly-plans", "/growth/weekly-plans"),
+    ("T52: app.js GET /growth/daily-tasks", "/growth/daily-tasks"),
+    ("T53: app.js GET /growth/reviews", "/growth/reviews"),
+    ("T54: app.js GET /growth/adjustments", "/growth/adjustments"),
+    ("T55: app.js GET /growth/handoffs", "/growth/handoffs"),
+    ("T56: app.js POST /growth/candidates", "/growth/candidates"),
+    ("T57: app.js POST /growth/candidates/accept", "/growth/candidates/accept"),
+]:
+    test(label, ep in js)
+test("T58: app.js no direct growth/ file access",
+     "growth/" not in js or "apiPost('/growth" in js or "apiGet('/growth" in js)
+test("T59: app.js no growth_goal.py call", "growth_goal.py" not in js)
+test("T60: app.js no growth_plan.py call", "growth_plan.py" not in js)
+test("T61: app.js no growth_review.py call", "growth_review.py" not in js)
+test("T62: app.js no memory store write from growth", "/memory/store" not in js[js.find("Growth Center Panel"):])
+test("T63: app.js growth create form ids", "growth-title" in js and "growth-area" in js and "growth-reason" in js)
+test("T64: app.js no dangerous growth patterns", "eval(" not in js_stripped and "new Function(" not in js_stripped and "child_process" not in js)
 
 # Summary
 print("\n" + "=" * 60)
