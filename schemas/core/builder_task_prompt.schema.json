@@ -1,0 +1,687 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/builder_task_prompt.schema.json",
+  "title": "Builder Task Prompt",
+  "description": "Canonical prompt contract for OpenCode / OmO / Claude Code / Codex CLI build tasks. It makes permissions, model choice, execution boundaries, acceptance tests, and reporting explicit before any builder modifies OnePal.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "builder_task_prompt_id",
+    "task_id",
+    "title",
+    "opencode_mode",
+    "omo_agent",
+    "model",
+    "thinking_intensity",
+    "task_objective",
+    "project_context",
+    "permissions",
+    "safety_constraints",
+    "allowed_scope",
+    "forbidden_scope",
+    "expected_outputs",
+    "acceptance_tests",
+    "rollback_plan",
+    "report_path",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "builder_task_prompt_id": {
+      "type": "string",
+      "pattern": "^btp_[a-zA-Z0-9_.-]+$"
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^task_[a-zA-Z0-9_.-]+$"
+    },
+    "proposal_ref": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^prop_[a-zA-Z0-9_.-]+$"
+    },
+    "approval_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_stage": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "build",
+        "review",
+        "acceptance",
+        "debug",
+        "refactor",
+        "documentation"
+      ],
+      "default": "build"
+    },
+    "opencode_mode": {
+      "type": "string",
+      "enum": [
+        "Plan",
+        "Build",
+        "Review",
+        "Debug",
+        "Refactor",
+        "Audit",
+        "Docs"
+      ]
+    },
+    "omo_agent": {
+      "type": "string",
+      "enum": [
+        "Prometheus",
+        "Hephaestus",
+        "Atlas",
+        "Sisyphus",
+        "none"
+      ]
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "tier",
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "examples": [
+            "deepseek",
+            "openai",
+            "anthropic",
+            "local"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "examples": [
+            "deepseek/deepseek-v4-pro",
+            "deepseek/deepseek-v4-flash"
+          ]
+        },
+        "tier": {
+          "type": "string",
+          "enum": [
+            "flash",
+            "pro",
+            "local",
+            "external_high_capability"
+          ]
+        },
+        "fallback": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "high_model_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "thinking_intensity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "very_high"
+      ]
+    },
+    "task_objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_context": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Architecture docs, reports, task IDs, or file refs the builder must read before editing."
+    },
+    "project_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_name",
+        "repo_path",
+        "branch_policy",
+        "baseline_doc_refs"
+      ],
+      "properties": {
+        "project_name": {
+          "type": "string"
+        },
+        "repo_path": {
+          "type": "string"
+        },
+        "branch_policy": {
+          "type": "string",
+          "enum": [
+            "current_branch_only",
+            "new_branch_required",
+            "no_git_changes",
+            "unspecified"
+          ]
+        },
+        "baseline_doc_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "schema_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "policy_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "related_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "do_not_touch_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_write",
+        "dependency_install",
+        "network",
+        "mcp_lsp_service",
+        "runtime_service",
+        "memory_write",
+        "secrets_access"
+      ],
+      "properties": {
+        "file_write": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "allowed",
+            "allowed_paths",
+            "forbidden_paths",
+            "requires_diff_summary"
+          ],
+          "properties": {
+            "allowed": {
+              "type": "boolean"
+            },
+            "allowed_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "forbidden_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "max_files_changed": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "requires_diff_summary": {
+              "type": "boolean"
+            }
+          }
+        },
+        "dependency_install": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "allowed",
+            "approval_required",
+            "allowed_package_managers"
+          ],
+          "properties": {
+            "allowed": {
+              "type": "boolean"
+            },
+            "approval_required": {
+              "type": "boolean"
+            },
+            "allowed_package_managers": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "pip",
+                  "uv",
+                  "pnpm",
+                  "npm",
+                  "yarn",
+                  "choco",
+                  "winget",
+                  "other"
+                ]
+              }
+            },
+            "notes": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "network": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "allowed",
+            "approval_required",
+            "allowed_domains"
+          ],
+          "properties": {
+            "allowed": {
+              "type": "boolean"
+            },
+            "approval_required": {
+              "type": "boolean"
+            },
+            "allowed_domains": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "purpose": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "mcp_lsp_service": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mcp_allowed",
+            "lsp_allowed",
+            "service_start_allowed",
+            "approval_required",
+            "allowed_ports"
+          ],
+          "properties": {
+            "mcp_allowed": {
+              "type": "boolean"
+            },
+            "lsp_allowed": {
+              "type": "boolean"
+            },
+            "service_start_allowed": {
+              "type": "boolean"
+            },
+            "approval_required": {
+              "type": "boolean"
+            },
+            "allowed_ports": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              }
+            },
+            "forbidden_services": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "runtime_service": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "can_start",
+            "can_stop",
+            "can_modify_registry",
+            "approval_required"
+          ],
+          "properties": {
+            "can_start": {
+              "type": "boolean"
+            },
+            "can_stop": {
+              "type": "boolean"
+            },
+            "can_modify_registry": {
+              "type": "boolean"
+            },
+            "approval_required": {
+              "type": "boolean"
+            },
+            "allowed_service_refs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "memory_write": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "approval_required"
+          ],
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "none",
+                "candidate_only",
+                "direct_store_forbidden"
+              ]
+            },
+            "approval_required": {
+              "type": "boolean"
+            },
+            "allowed_memory_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "forbidden_memory_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "secrets_access": {
+          "type": "string",
+          "enum": [
+            "forbidden",
+            "read_with_explicit_approval_only"
+          ]
+        }
+      }
+    },
+    "safety_constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "no_shell_true",
+        "no_secrets",
+        "no_unapproved_mcp",
+        "no_runtime_jsonl_git",
+        "no_direct_memory_store",
+        "no_unrelated_refactor",
+        "no_external_script_exec",
+        "action_registry_required",
+        "permission_check_required"
+      ],
+      "properties": {
+        "no_shell_true": {
+          "type": "boolean",
+          "const": true
+        },
+        "no_secrets": {
+          "type": "boolean",
+          "const": true
+        },
+        "no_unapproved_mcp": {
+          "type": "boolean",
+          "const": true
+        },
+        "no_runtime_jsonl_git": {
+          "type": "boolean",
+          "const": true
+        },
+        "no_direct_memory_store": {
+          "type": "boolean",
+          "const": true
+        },
+        "no_unrelated_refactor": {
+          "type": "boolean",
+          "const": true
+        },
+        "no_external_script_exec": {
+          "type": "boolean",
+          "const": true
+        },
+        "action_registry_required": {
+          "type": "boolean",
+          "const": true
+        },
+        "permission_check_required": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "allowed_scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "forbidden_scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "expected_outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "output_type",
+          "path_or_ref",
+          "description"
+        ],
+        "properties": {
+          "output_type": {
+            "type": "string"
+          },
+          "path_or_ref": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "acceptance_tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "test_id",
+          "test_type",
+          "description",
+          "required"
+        ],
+        "properties": {
+          "test_id": {
+            "type": "string",
+            "pattern": "^test_[a-zA-Z0-9_.-]+$"
+          },
+          "test_type": {
+            "type": "string",
+            "enum": [
+              "pytest",
+              "schema_validation",
+              "startup_smoke",
+              "governance_smoke",
+              "static_scan",
+              "manual_review",
+              "git_check",
+              "runtime_health"
+            ]
+          },
+          "command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "expected_result": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "rollback_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "strategy"
+      ],
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "strategy": {
+          "type": "string"
+        },
+        "checkpoint_required_before_edit": {
+          "type": "boolean"
+        },
+        "rollback_commands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "report_path": {
+      "type": "string",
+      "pattern": "^docs/reports/.+\\.md$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending_approval",
+        "approved",
+        "issued",
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+        "superseded"
+      ]
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "opencode_mode": {
+            "const": "Build"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "omo_agent": {
+            "enum": [
+              "Hephaestus",
+              "Sisyphus"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "opencode_mode": {
+            "const": "Plan"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "permissions": {
+            "properties": {
+              "file_write": {
+                "properties": {
+                  "allowed": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

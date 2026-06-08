@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/memory_snapshot.schema.json",
+  "title": "Memory Snapshot",
+  "description": "Checkpoint metadata for memory store backups before high-risk memory changes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "memory_snapshot_id",
+    "created_at",
+    "created_by",
+    "reason",
+    "storage_path",
+    "included_scopes",
+    "status"
+  ],
+  "properties": {
+    "memory_snapshot_id": {
+      "type": "string",
+      "pattern": "^memsnap_[a-zA-Z0-9_.-]+$"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "storage_path": {
+      "type": "string"
+    },
+    "content_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "included_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "entry_count": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "created",
+        "verified",
+        "failed",
+        "expired",
+        "archived"
+      ]
+    },
+    "restore_available": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

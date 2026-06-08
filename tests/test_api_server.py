@@ -285,6 +285,9 @@ def main():
         test_mem_propose_no_cid(md)
         test_mem_candidates_create(md)
         test_mem_response_structure(md)
+        test_mem_governance_get_empty(md)
+        test_mem_governance_post_validation(md)
+        test_mem_governance_flow(md)
     test_mem_no_shell()
     test_mem_unknown_route()
     test_mem_path_safety()
@@ -310,6 +313,22 @@ def main():
         test_growth_review_flow(gd)
     test_growth_api_no_shell()
     test_growth_path_safety()
+
+    # Career API tests
+    with tempfile.TemporaryDirectory(prefix="onepal_api_career_") as td:
+        cd = Path(td)
+        test_career_get_empty(cd)
+        test_career_validation(cd)
+        test_career_flow(cd)
+    test_career_path_safety()
+
+    # Readiness Center API tests
+    with tempfile.TemporaryDirectory(prefix="onepal_api_ready_") as td:
+        rd = Path(td)
+        test_readiness_get_empty(rd)
+        test_readiness_validation(rd)
+        test_readiness_flow(rd)
+    test_readiness_path_safety()
 
     print("\n" + "=" * 60)
     total = passed + failed
@@ -521,6 +540,217 @@ def test_growth_path_safety():
     test("G36: all Growth paths under PROJECT_ROOT", ok)
 
 
+# --- Career API Tests (Task 15) ---
+
+def test_career_get_empty(tmpdir):
+    print("\n--- C1-C6: Career GET empty lists ---")
+    from scripts.api_server import (
+        handle_career_assets_get, handle_career_claims_get, handle_career_jds_get,
+        handle_career_evaluations_get, handle_career_applications_get,
+        handle_career_handoffs_get,
+    )
+    checks = [
+        ("C1: assets empty", handle_career_assets_get(tmpdir / "assets.jsonl", 20), "assets"),
+        ("C2: claims empty", handle_career_claims_get(tmpdir / "claims.jsonl", 20), "claims"),
+        ("C3: jds empty", handle_career_jds_get(tmpdir / "jds.jsonl", 20), "jds"),
+        ("C4: evaluations empty", handle_career_evaluations_get(tmpdir / "evals.jsonl", 20), "evaluations"),
+        ("C5: applications empty", handle_career_applications_get(tmpdir / "apps.jsonl", 20), "applications"),
+        ("C6: handoffs empty", handle_career_handoffs_get(tmpdir / "handoffs.jsonl", 20), "handoffs"),
+    ]
+    for label, resp, key in checks:
+        test(label, resp["ok"] and resp["data"][key] == [])
+
+
+def test_career_validation(tmpdir):
+    print("\n--- C7-C12: Career POST validation ---")
+    from scripts.api_server import (
+        handle_career_assets_post, handle_career_claims_post, handle_career_jds_post,
+        handle_career_evaluations_post, handle_career_applications_post,
+        handle_career_handoffs_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "career_center.py"
+    test("C7: asset empty title rejected", not handle_career_assets_post({"title": ""}, script)["ok"])
+    test("C8: claim empty rejected", not handle_career_claims_post({"claim_text": ""}, script)["ok"])
+    test("C9: jd empty title rejected", not handle_career_jds_post({"title": ""}, script)["ok"])
+    test("C10: evaluation missing jd rejected", not handle_career_evaluations_post({"jd_id": ""}, script)["ok"])
+    test("C11: application missing jd rejected", not handle_career_applications_post({"jd_id": ""}, script)["ok"])
+    test("C12: handoff missing source rejected", not handle_career_handoffs_post({"source_id": ""}, script)["ok"])
+
+
+def test_career_flow(tmpdir):
+    print("\n--- C13-C18: Career API flow ---")
+    from scripts.api_server import (
+        handle_career_assets_post, handle_career_claims_post, handle_career_jds_post,
+        handle_career_evaluations_post, handle_career_applications_post,
+        handle_career_handoffs_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "career_center.py"
+    assets = tmpdir / "assets.jsonl"
+    claims = tmpdir / "claims.jsonl"
+    jds = tmpdir / "jds.jsonl"
+    evals = tmpdir / "evals.jsonl"
+    apps = tmpdir / "apps.jsonl"
+    handoffs = tmpdir / "handoffs.jsonl"
+    audit = tmpdir / "audit.jsonl"
+    asset = handle_career_assets_post({"title": "API project", "summary": "Python API work", "evidence_refs": ["test:test_api_server"]},
+                                      script, assets, claims, jds, evals, apps, handoffs, audit)
+    aid = asset["data"].get("asset_id")
+    claim = handle_career_claims_post({"claim_text": "Built python api", "asset_refs": [aid]},
+                                      script, assets, claims, jds, evals, apps, handoffs, audit)
+    cid = claim["data"].get("claim_id")
+    jd = handle_career_jds_post({"title": "Backend Engineer", "requirements": ["python api"]},
+                                script, assets, claims, jds, evals, apps, handoffs, audit)
+    jid = jd["data"].get("jd_id")
+    evaluation = handle_career_evaluations_post({"jd_id": jid}, script, assets, claims, jds, evals, apps, handoffs, audit)
+    app = handle_career_applications_post({"jd_id": jid, "asset_refs": [aid], "claim_refs": [cid], "notes": "draft only"},
+                                          script, assets, claims, jds, evals, apps, handoffs, audit)
+    handoff = handle_career_handoffs_post({"source_type": "growth", "source_id": "goal_1", "summary": "career handoff"},
+                                          script, assets, claims, jds, evals, apps, handoffs, audit)
+    test("C13: asset created", asset["ok"] and aid)
+    test("C14: claim created", claim["ok"] and cid)
+    test("C15: jd created", jd["ok"] and jid)
+    test("C16: evaluation created", evaluation["ok"] and evaluation["data"].get("evaluation_id"))
+    test("C17: application manual only", app["ok"] and app["data"].get("auto_submit") is False)
+    test("C18: handoff created", handoff["ok"] and handoff["data"].get("handoff_id"))
+
+
+def test_career_path_safety():
+    print("\n--- C19: Career paths under project root ---")
+    from scripts.api_server import (
+        CAREER_ASSETS_PATH, CAREER_CLAIMS_PATH, CAREER_JDS_PATH,
+        CAREER_EVALUATIONS_PATH, CAREER_APPLICATIONS_PATH, CAREER_HANDOFFS_PATH,
+    )
+    paths = [CAREER_ASSETS_PATH, CAREER_CLAIMS_PATH, CAREER_JDS_PATH,
+             CAREER_EVALUATIONS_PATH, CAREER_APPLICATIONS_PATH, CAREER_HANDOFFS_PATH]
+    ok = all(str(p).startswith(str(PROJECT_ROOT)) for p in paths)
+    test("C19: all Career paths under PROJECT_ROOT", ok)
+
+
+# --- Readiness API Tests (Tasks 16-20) ---
+
+def readiness_paths(tmpdir):
+    return (
+        tmpdir / "workflows.jsonl",
+        tmpdir / "runs.jsonl",
+        tmpdir / "skills.jsonl",
+        tmpdir / "skill_reviews.jsonl",
+        tmpdir / "nodes.jsonl",
+        tmpdir / "edges.jsonl",
+        tmpdir / "boundaries.jsonl",
+        tmpdir / "state.jsonl",
+        tmpdir / "routes.jsonl",
+        tmpdir / "costs.jsonl",
+        tmpdir / "mcp_profiles.jsonl",
+        tmpdir / "tool_policies.jsonl",
+        tmpdir / "audit.jsonl",
+    )
+
+
+def test_readiness_get_empty(tmpdir):
+    print("\n--- RD1-RD12: Readiness GET empty lists ---")
+    from scripts.api_server import (
+        handle_automation_workflows_get, handle_automation_runs_get,
+        handle_skill_candidates_get, handle_skill_reviews_get,
+        handle_knowledge_nodes_get, handle_knowledge_edges_get,
+        handle_knowledge_boundaries_get, handle_knowledge_state_get,
+        handle_model_routes_get, handle_cost_events_get,
+        handle_mcp_profiles_get, handle_tool_policies_get,
+    )
+    checks = [
+        ("RD1: workflows empty", handle_automation_workflows_get(tmpdir / "w.jsonl", 20), "workflows"),
+        ("RD2: runs empty", handle_automation_runs_get(tmpdir / "r.jsonl", 20), "runs"),
+        ("RD3: skill candidates empty", handle_skill_candidates_get(tmpdir / "s.jsonl", 20), "skills"),
+        ("RD4: skill reviews empty", handle_skill_reviews_get(tmpdir / "sr.jsonl", 20), "skill_reviews"),
+        ("RD5: KG nodes empty", handle_knowledge_nodes_get(tmpdir / "n.jsonl", 20), "nodes"),
+        ("RD6: KG edges empty", handle_knowledge_edges_get(tmpdir / "e.jsonl", 20), "edges"),
+        ("RD7: KG boundaries empty", handle_knowledge_boundaries_get(tmpdir / "b.jsonl", 20), "boundaries"),
+        ("RD8: KG state empty", handle_knowledge_state_get(tmpdir / "ks.jsonl", 20), "knowledge_state"),
+        ("RD9: model routes empty", handle_model_routes_get(tmpdir / "mr.jsonl", 20), "model_routes"),
+        ("RD10: cost events empty", handle_cost_events_get(tmpdir / "ce.jsonl", 20), "cost_events"),
+        ("RD11: mcp profiles empty", handle_mcp_profiles_get(tmpdir / "mp.jsonl", 20), "mcp_profiles"),
+        ("RD12: tool policies empty", handle_tool_policies_get(tmpdir / "tp.jsonl", 20), "tool_policies"),
+    ]
+    for label, resp, key in checks:
+        test(label, resp["ok"] and resp["data"][key] == [])
+
+
+def test_readiness_validation(tmpdir):
+    print("\n--- RD13-RD20: Readiness POST validation ---")
+    from scripts.api_server import (
+        handle_automation_workflows_post, handle_automation_runs_post,
+        handle_skill_candidates_post, handle_skill_reviews_post,
+        handle_knowledge_nodes_post, handle_knowledge_edges_post,
+        handle_model_routes_post, handle_mcp_profiles_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "readiness_center.py"
+    p = readiness_paths(tmpdir / "validation")
+    test("RD13: workflow name required", not handle_automation_workflows_post({"name": ""}, script, p)["ok"])
+    test("RD14: workflow_id required", not handle_automation_runs_post({"workflow_id": ""}, script, p)["ok"])
+    test("RD15: skill name required", not handle_skill_candidates_post({"name": ""}, script, p)["ok"])
+    test("RD16: skill_id required", not handle_skill_reviews_post({"skill_id": ""}, script, p)["ok"])
+    test("RD17: KG label required", not handle_knowledge_nodes_post({"label": ""}, script, p)["ok"])
+    test("RD18: KG edge refs required", not handle_knowledge_edges_post({"from_node_ref": "", "to_node_ref": ""}, script, p)["ok"])
+    test("RD19: model task type required", not handle_model_routes_post({"task_type": ""}, script, p)["ok"])
+    test("RD20: mcp name required", not handle_mcp_profiles_post({"name": ""}, script, p)["ok"])
+
+
+def test_readiness_flow(tmpdir):
+    print("\n--- RD21-RD32: Readiness API flow ---")
+    from scripts.api_server import (
+        handle_automation_workflows_post, handle_automation_runs_post,
+        handle_skill_candidates_post, handle_skill_reviews_post,
+        handle_knowledge_nodes_post, handle_knowledge_edges_post,
+        handle_knowledge_boundaries_post, handle_knowledge_state_post,
+        handle_model_routes_post, handle_cost_events_post,
+        handle_mcp_profiles_post, handle_tool_policies_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "readiness_center.py"
+    p = readiness_paths(tmpdir / "flow")
+    wf = handle_automation_workflows_post({"name": "Manual weekly review", "action_refs": ["read_file"]}, script, p)
+    wid = wf["data"].get("workflow_id")
+    run = handle_automation_runs_post({"workflow_id": wid}, script, p)
+    skill = handle_skill_candidates_post({"name": "Local parser"}, script, p)
+    sid = skill["data"].get("skill_id")
+    review = handle_skill_reviews_post({"skill_id": sid}, script, p)
+    n1 = handle_knowledge_nodes_post({"label": "Memory governance"}, script, p)
+    n2 = handle_knowledge_nodes_post({"label": "Approval gate"}, script, p)
+    edge = handle_knowledge_edges_post({"from_node_ref": n1["data"].get("node_id"), "to_node_ref": n2["data"].get("node_id")}, script, p)
+    boundary = handle_knowledge_boundaries_post({"summary": "Needs user confirmation"}, script, p)
+    state = handle_knowledge_state_post({}, script, p)
+    route = handle_model_routes_post({"task_type": "planning"}, script, p)
+    cost = handle_cost_events_post({"task_ref": "task_1", "estimated_cost_usd": 0}, script, p)
+    mcp = handle_mcp_profiles_post({"name": "local-disabled"}, script, p)
+    policy = handle_tool_policies_post({"tool_ref": "tool_local"}, script, p)
+    test("RD21: workflow disabled", wf["ok"] and wf["data"].get("enabled") is False)
+    test("RD22: workflow run preflight", run["ok"] and run["data"].get("status") == "preflight")
+    test("RD23: skill disabled", skill["ok"] and skill["data"].get("enabled") is False)
+    test("RD24: skill review does not enable", review["ok"] and review["data"].get("enabled_after_review") is False)
+    test("RD25: KG node created", n1["ok"] and n1["data"].get("node_id"))
+    test("RD26: KG edge created", edge["ok"] and edge["data"].get("edge_id"))
+    test("RD27: boundary created", boundary["ok"] and boundary["data"].get("boundary_id"))
+    test("RD28: RAG disabled", state["ok"] and state["data"].get("rag_enabled") is False)
+    test("RD29: LiteLLM disabled", route["ok"] and route["data"].get("litellm_enabled") is False)
+    test("RD30: cost event created", cost["ok"] and cost["data"].get("cost_event_id"))
+    test("RD31: MCP disabled", mcp["ok"] and mcp["data"].get("enabled") is False and mcp["data"].get("write_actions_allowed") is False)
+    test("RD32: tool policy write disabled", policy["ok"] and policy["data"].get("write_allowed") is False)
+
+
+def test_readiness_path_safety():
+    print("\n--- RD33: Readiness paths under project root ---")
+    from scripts.api_server import (
+        AUTOMATION_WORKFLOWS_PATH, AUTOMATION_RUNS_PATH, SKILL_CANDIDATES_PATH,
+        SKILL_REVIEWS_PATH, KNOWLEDGE_NODES_PATH, KNOWLEDGE_EDGES_PATH,
+        KNOWLEDGE_BOUNDARIES_PATH, KNOWLEDGE_STATE_PATH, MODEL_ROUTES_PATH,
+        COST_EVENTS_PATH, MCP_PROFILES_PATH, TOOL_POLICIES_PATH,
+    )
+    paths = [AUTOMATION_WORKFLOWS_PATH, AUTOMATION_RUNS_PATH, SKILL_CANDIDATES_PATH,
+             SKILL_REVIEWS_PATH, KNOWLEDGE_NODES_PATH, KNOWLEDGE_EDGES_PATH,
+             KNOWLEDGE_BOUNDARIES_PATH, KNOWLEDGE_STATE_PATH, MODEL_ROUTES_PATH,
+             COST_EVENTS_PATH, MCP_PROFILES_PATH, TOOL_POLICIES_PATH]
+    ok = all(str(p).startswith(str(PROJECT_ROOT)) for p in paths)
+    test("RD33: all Readiness paths under PROJECT_ROOT", ok)
+
+
 # ─── Memory API Tests (Task 09-B) ───
 
 def test_mem_get_empty(tmpdir):
@@ -643,6 +873,86 @@ def test_mem_response_structure(tmpdir):
         test(f"T28-{name}: has ok/data/error/meta", ok)
 
 
+def test_mem_governance_get_empty(tmpdir):
+    """T32: Memory governance GET handlers return empty lists."""
+    print("\n--- T32: Memory governance GET empty lists ---")
+    from scripts.api_server import (
+        handle_memory_reviews_get, handle_memory_conflicts_get,
+        handle_memory_changes_get, handle_memory_snapshots_get,
+    )
+    checks = [
+        ("T32a: reviews empty", handle_memory_reviews_get(tmpdir / "reviews.jsonl", 20), "reviews"),
+        ("T32b: conflicts empty", handle_memory_conflicts_get(tmpdir / "conflicts.jsonl", 20), "conflicts"),
+        ("T32c: changes empty", handle_memory_changes_get(tmpdir / "changes.jsonl", 20), "changes"),
+        ("T32d: snapshots empty", handle_memory_snapshots_get(tmpdir / "snapshots.jsonl", 20), "snapshots"),
+    ]
+    for label, resp, key in checks:
+        test(label, resp["ok"] and resp["data"][key] == [])
+
+
+def test_mem_governance_post_validation(tmpdir):
+    """T33: Memory governance POST handlers validate required fields."""
+    print("\n--- T33: Memory governance POST validation ---")
+    from scripts.api_server import (
+        handle_memory_review_post, handle_memory_conflict_post,
+        handle_memory_change_post, handle_memory_snapshot_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "memory_governance.py"
+    resp1 = handle_memory_review_post({"target_type": "bad", "target_ref": "x"}, script)
+    test("T33a: review invalid target_type rejected", not resp1["ok"] and resp1["error"]["code"] == "INVALID_TYPE")
+    resp2 = handle_memory_conflict_post({"target_type": "candidate", "target_ref": ""}, script)
+    test("T33b: conflict missing target_ref rejected", not resp2["ok"] and resp2["error"]["code"] == "MISSING_ID")
+    resp3 = handle_memory_change_post({"change_type": "create", "target_refs": "", "reason": "test"}, script)
+    test("T33c: change missing target_refs rejected", not resp3["ok"] and resp3["error"]["code"] == "MISSING_ID")
+    resp4 = handle_memory_snapshot_post({"reason": ""}, script)
+    test("T33d: snapshot missing reason rejected", not resp4["ok"] and resp4["error"]["code"] == "EMPTY_REASON")
+
+
+def test_mem_governance_flow(tmpdir):
+    """T34: Memory governance API delegates to script without direct store write."""
+    print("\n--- T34: Memory governance API flow ---")
+    from scripts.api_server import (
+        handle_memory_review_post, handle_memory_conflict_post,
+        handle_memory_change_post, handle_memory_snapshot_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "memory_governance.py"
+    cand = tmpdir / "candidate.jsonl"
+    store = tmpdir / "store.jsonl"
+    reviews = tmpdir / "reviews.jsonl"
+    conflicts = tmpdir / "conflicts.jsonl"
+    changes = tmpdir / "changes.jsonl"
+    snapshots = tmpdir / "snapshots.jsonl"
+    snap_dir = tmpdir / "snapshot_files"
+    audit = tmpdir / "audit.jsonl"
+    candidate = {
+        "candidate_id": "memcand_api",
+        "memory_type": "project_decision",
+        "content": "OnePal memory governance uses review before change requests.",
+        "source_type": "manual",
+        "source_agent": "test",
+        "sensitivity": "internal",
+        "status": "captured",
+    }
+    with open(cand, "w", encoding="utf-8") as f:
+        f.write(json.dumps(candidate) + "\n")
+    before_store = store.read_text(encoding="utf-8") if store.exists() else ""
+    review = handle_memory_review_post({"target_type": "candidate", "target_ref": "memcand_api"},
+                                       script, cand, store, reviews, conflicts, changes, snapshots, snap_dir, audit)
+    conflict = handle_memory_conflict_post({"target_type": "candidate", "target_ref": "memcand_api"},
+                                           script, cand, store, reviews, conflicts, changes, snapshots, snap_dir, audit)
+    change = handle_memory_change_post({"change_type": "create", "target_refs": ["memcand_api"],
+                                        "source_candidate_id": "memcand_api", "reason": "Reviewed memory candidate"},
+                                       script, cand, store, reviews, conflicts, changes, snapshots, snap_dir, audit)
+    snapshot = handle_memory_snapshot_post({"reason": "Before applying memory change"},
+                                           script, cand, store, reviews, conflicts, changes, snapshots, snap_dir, audit)
+    after_store = store.read_text(encoding="utf-8") if store.exists() else ""
+    test("T34a: review delegated", review["ok"] and review["data"].get("review_id"))
+    test("T34b: conflict delegated", conflict["ok"] and conflict["data"].get("status") in ("created", "no_conflict"))
+    test("T34c: change request delegated", change["ok"] and change["data"].get("requires_user_approval") is True)
+    test("T34d: snapshot delegated", snapshot["ok"] and snapshot["data"].get("snapshot_id"))
+    test("T34e: governance API did not write store", before_store == after_store)
+
+
 def test_mem_no_shell():
     """T29: Memory API code has no shell=True (excluding comments)."""
     print("\n--- T29: Memory API no shell=True ---")
@@ -667,9 +977,17 @@ def test_mem_unknown_route():
 def test_mem_path_safety():
     """T31: No arbitrary path accepted by memory endpoints."""
     print("\n--- T31: memory endpoint path safety ---")
-    from scripts.api_server import MEMORY_CANDIDATES_PATH, MEMORY_STORE_PATH, MEMORY_PROPOSALS_PATH
+    from scripts.api_server import (
+        MEMORY_CANDIDATES_PATH, MEMORY_STORE_PATH, MEMORY_PROPOSALS_PATH,
+        MEMORY_REVIEWS_PATH, MEMORY_CONFLICTS_PATH, MEMORY_CHANGES_PATH,
+        MEMORY_SNAPSHOTS_PATH, MEMORY_SNAPSHOT_DIR,
+    )
     # Verify all paths are under PROJECT_ROOT
-    ok = all(str(p).startswith(str(PROJECT_ROOT)) for p in [MEMORY_CANDIDATES_PATH, MEMORY_PROPOSALS_PATH, MEMORY_STORE_PATH])
+    ok = all(str(p).startswith(str(PROJECT_ROOT)) for p in [
+        MEMORY_CANDIDATES_PATH, MEMORY_PROPOSALS_PATH, MEMORY_STORE_PATH,
+        MEMORY_REVIEWS_PATH, MEMORY_CONFLICTS_PATH, MEMORY_CHANGES_PATH,
+        MEMORY_SNAPSHOTS_PATH, MEMORY_SNAPSHOT_DIR,
+    ])
     test("T31: all memory paths under PROJECT_ROOT", ok)
 
 

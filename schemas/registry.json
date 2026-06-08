@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.4.0",
   "schemas": [
     {
       "schema_id": "action.schema.json",
@@ -70,6 +70,177 @@
       "path": "schemas/core/memory_candidate.schema.json",
       "owner": "Coordinator",
       "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "builder_task_prompt.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/builder_task_prompt.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R3",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "memory_entry.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/memory_entry.schema.json",
+      "owner": "Memory Curator",
+      "risk_level": "R3",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "memory_conflict.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/memory_conflict.schema.json",
+      "owner": "Memory Curator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "memory_quality_review.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/memory_quality_review.schema.json",
+      "owner": "Memory Curator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "memory_change_request.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/memory_change_request.schema.json",
+      "owner": "Memory Curator",
+      "risk_level": "R3",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "memory_snapshot.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/memory_snapshot.schema.json",
+      "owner": "Memory Curator",
+      "risk_level": "R3",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "career_asset.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/career_asset.schema.json",
+      "owner": "Career Asset Agent",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "resume_claim.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/resume_claim.schema.json",
+      "owner": "Career Asset Agent",
+      "risk_level": "R3",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "jd_item.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/jd_item.schema.json",
+      "owner": "Career Asset Agent",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "jd_evaluation.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/jd_evaluation.schema.json",
+      "owner": "Career Asset Agent",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "application_record.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/application_record.schema.json",
+      "owner": "Career Asset Agent",
+      "risk_level": "R3",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "knowledge_node.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/knowledge_node.schema.json",
+      "owner": "Deep Research & Cognition Agent",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "knowledge_edge.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/knowledge_edge.schema.json",
+      "owner": "Deep Research & Cognition Agent",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "knowledge_state.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/knowledge_state.schema.json",
+      "owner": "Deep Research & Cognition Agent",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "boundary_candidate.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/boundary_candidate.schema.json",
+      "owner": "Deep Research & Cognition Agent",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "model_router.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/model_router.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "cost_event.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/cost_event.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R2",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "mcp_server_profile.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/mcp_server_profile.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R3",
+      "backward_compatible": true,
+      "status": "active"
+    },
+    {
+      "schema_id": "tool_trust_policy.schema.json",
+      "version": "1.0.0",
+      "path": "schemas/core/tool_trust_policy.schema.json",
+      "owner": "Coordinator",
+      "risk_level": "R3",
       "backward_compatible": true,
       "status": "active"
     },

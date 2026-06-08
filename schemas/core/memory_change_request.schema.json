@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/memory_change_request.schema.json",
+  "title": "Memory Change Request",
+  "description": "Auditable request to create, update, merge, supersede, archive, redact, forget, or delete memory. It is the write-control object between Memory Curator, Approval Queue, and Memory Store.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "memory_change_request_id",
+    "change_type",
+    "requested_by",
+    "risk_level",
+    "requires_user_approval",
+    "status",
+    "reason",
+    "created_at",
+    "target_refs",
+    "rollback_plan"
+  ],
+  "properties": {
+    "memory_change_request_id": {
+      "type": "string",
+      "pattern": "^memchg_[a-zA-Z0-9_.-]+$"
+    },
+    "change_type": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update",
+        "merge",
+        "supersede",
+        "archive",
+        "redact",
+        "forget",
+        "delete"
+      ]
+    },
+    "requested_by": {
+      "type": "string"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    "requires_user_approval": {
+      "type": "boolean"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending_review",
+        "approved",
+        "rejected",
+        "executing",
+        "completed",
+        "failed",
+        "rolled_back",
+        "archived"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "target_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Memory candidate IDs, memory IDs, conflict IDs, or quality review IDs touched by this change."
+    },
+    "proposed_entry": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true
+    },
+    "merge_sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "approval_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "audit_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rollback_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "available",
+        "strategy"
+      ],
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "strategy": {
+          "type": "string"
+        },
+        "snapshot_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "change_type": {
+            "enum": [
+              "create",
+              "update",
+              "merge",
+              "supersede",
+              "archive",
+              "redact",
+              "forget",
+              "delete"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "requires_user_approval": {
+            "const": true
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/cost_event.schema.json",
+  "title": "Cost Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["cost_event_id", "task_ref", "model", "estimated_cost_usd", "budget_class", "created_at"],
+  "properties": {
+    "cost_event_id": {"type": "string", "pattern": "^costevt_[a-zA-Z0-9_.-]+$"},
+    "task_ref": {"type": "string"},
+    "model": {"type": "string"},
+    "estimated_cost_usd": {"type": "number", "minimum": 0},
+    "budget_class": {"type": "string", "enum": ["low", "medium", "high", "manual_review"]},
+    "created_at": {"type": "string"}
+  }
+}

@@ -1,0 +1,344 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/memory_entry.schema.json",
+  "title": "Memory Entry",
+  "description": "Approved long-term or scoped memory record. Memory Entry is written only after candidate review, conflict check, quality review, and required approval.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "memory_id",
+    "memory_type",
+    "content",
+    "scope",
+    "status",
+    "sensitivity",
+    "confidence",
+    "retention_policy",
+    "provenance",
+    "version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "memory_id": {
+      "type": "string",
+      "pattern": "^mem_[a-zA-Z0-9_.-]+$"
+    },
+    "source_candidate_ref": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^memcand_[a-zA-Z0-9_.-]+$"
+    },
+    "memory_type": {
+      "type": "string",
+      "enum": [
+        "owner_preference",
+        "user_preference",
+        "system_decision",
+        "project_state",
+        "task_result",
+        "failure_case",
+        "skill_memory",
+        "document_summary",
+        "career_asset_ref",
+        "growth_goal_ref",
+        "research_summary",
+        "agent_rule",
+        "workflow_preference",
+        "safety_rule",
+        "other"
+      ]
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1
+    },
+    "structured_data": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true
+    },
+    "summary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visibility"
+      ],
+      "properties": {
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "global",
+            "owner",
+            "shared",
+            "project",
+            "agent",
+            "workflow",
+            "skill",
+            "session_archive"
+          ]
+        },
+        "project_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "agent_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workflow_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "skill_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "applies_to": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "superseded",
+        "archived",
+        "redacted",
+        "forgotten",
+        "quarantined"
+      ]
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": [
+        "public",
+        "internal",
+        "private",
+        "sensitive"
+      ]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "retention_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class",
+        "review_after_days"
+      ],
+      "properties": {
+        "class": {
+          "type": "string",
+          "enum": [
+            "short",
+            "medium",
+            "long",
+            "permanent_review_required"
+          ]
+        },
+        "review_after_days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "expires_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "decay_policy": {
+          "type": "string",
+          "enum": [
+            "none",
+            "lower_confidence_over_time",
+            "archive_if_unused",
+            "review_before_reuse"
+          ]
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin_type",
+        "source_refs",
+        "created_by_agent"
+      ],
+      "properties": {
+        "origin_type": {
+          "type": "string",
+          "enum": [
+            "user_direct",
+            "user_confirmed",
+            "agent_inferred",
+            "external_source",
+            "system_generated"
+          ]
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "created_by_agent": {
+          "type": "string"
+        },
+        "source_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_timestamp": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "quality": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "quality_review_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^memqr_[a-zA-Z0-9_.-]+$"
+        },
+        "overall_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "last_reviewed_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "approval_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "conflict_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^memconf_[a-zA-Z0-9_.-]+$"
+      }
+    },
+    "supersedes_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^mem_[a-zA-Z0-9_.-]+$"
+      }
+    },
+    "superseded_by_ref": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^mem_[a-zA-Z0-9_.-]+$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "origin_type": {
+                "enum": [
+                  "agent_inferred",
+                  "external_source"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "approval_ref"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "memory_type": {
+            "enum": [
+              "system_decision",
+              "safety_rule",
+              "agent_rule"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "approval_ref"
+        ]
+      }
+    }
+  ]
+}

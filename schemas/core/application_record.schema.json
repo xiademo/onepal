@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/application_record.schema.json",
+  "title": "Application Record",
+  "description": "Manual-review application planning record. It never represents an automatic submission.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["application_id", "jd_ref", "asset_refs", "claim_refs", "status", "auto_submit", "created_at"],
+  "properties": {
+    "application_id": {"type": "string", "pattern": "^apprec_[a-zA-Z0-9_.-]+$"},
+    "jd_ref": {"type": "string", "pattern": "^jd_[a-zA-Z0-9_.-]+$"},
+    "asset_refs": {"type": "array", "items": {"type": "string", "pattern": "^careerasset_[a-zA-Z0-9_.-]+$"}},
+    "claim_refs": {"type": "array", "items": {"type": "string", "pattern": "^claim_[a-zA-Z0-9_.-]+$"}},
+    "status": {"type": "string", "enum": ["draft", "manual_review", "ready_to_apply", "applied_manually", "archived"]},
+    "auto_submit": {"type": "boolean", "const": false},
+    "notes": {"type": ["string", "null"]},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": ["string", "null"]}
+  }
+}

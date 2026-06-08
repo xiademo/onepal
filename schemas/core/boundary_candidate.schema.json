@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/boundary_candidate.schema.json",
+  "title": "Boundary Candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["boundary_id", "boundary_type", "summary", "source_refs", "status", "created_at"],
+  "properties": {
+    "boundary_id": {"type": "string", "pattern": "^boundary_[a-zA-Z0-9_.-]+$"},
+    "boundary_type": {"type": "string", "enum": ["uncertainty", "contradiction", "open_question", "missing_evidence", "scope_limit"]},
+    "summary": {"type": "string", "minLength": 1},
+    "source_refs": {"type": "array", "items": {"type": "string"}},
+    "status": {"type": "string", "enum": ["candidate", "reviewed", "closed", "archived"]},
+    "created_at": {"type": "string"}
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/jd_evaluation.schema.json",
+  "title": "Job Description Evaluation",
+  "description": "Deterministic local match evaluation between a JD and evidence-backed career claims.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["evaluation_id", "jd_ref", "matched_claim_refs", "missing_requirements", "score", "recommendation", "status", "created_at"],
+  "properties": {
+    "evaluation_id": {"type": "string", "pattern": "^jdeval_[a-zA-Z0-9_.-]+$"},
+    "jd_ref": {"type": "string", "pattern": "^jd_[a-zA-Z0-9_.-]+$"},
+    "matched_claim_refs": {"type": "array", "items": {"type": "string", "pattern": "^claim_[a-zA-Z0-9_.-]+$"}},
+    "missing_requirements": {"type": "array", "items": {"type": "string"}},
+    "score": {"type": "number", "minimum": 0, "maximum": 1},
+    "recommendation": {"type": "string", "enum": ["strong_match", "possible_match", "needs_evidence", "not_recommended", "manual_review"]},
+    "status": {"type": "string", "enum": ["draft", "ready", "needs_evidence", "archived"]},
+    "created_at": {"type": "string"}
+  }
+}

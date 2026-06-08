@@ -1,6 +1,6 @@
 # Task 03-B Governance Smoke Test Report
 
-Generated: 2026-06-07T08:23:09.499190+00:00
+Generated: 2026-06-08T03:25:00.073318+00:00
 
 ## 1. Summary
 
@@ -67,12 +67,12 @@ Results: 12/12 PASS, 0/12 FAIL
 rkspaces\onepal
   PASS: schemas/registry.json exists
   PASS: schemas/core/ directory exists
-  PASS: schemas/registry.json parsed (version: 1.1.0)
-  PASS: All 22 registry entries resolve to existing files
-  PASS: All 22 core schemas are registered
+  PASS: schemas/registry.json parsed (version: 1.4.0)
+  PASS: All 41 registry entries resolve to existing files
+  PASS: All 41 core schemas are registered
   PASS: Metadata scan complete
-  PASS: $ref check: 0 references across 22 schemas, 0 broken
-  PASS: All 22 core schemas compile successfully
+  PASS: $ref check: 0 references across 41 schemas, 0 broken
+  PASS: All 41 core schemas compile successfully
   PASS: action.example.json validates ok
   PASS: permission_profile.example.json validates ok
   PASS: approval_decision.example.json validates ok
@@ -92,7 +92,7 @@ Report: D:\git\ai\workspaces\onepal\docs\reports\task02_schema_validation_report
 
 ## 4. JSONL Parse Audit
 
-Total JSONL lines: 6, bad: 0
+Total JSONL lines: 15, bad: 0
 
 ## 5. Git Check-Ignore
 

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/mcp_server_profile.schema.json",
+  "title": "MCP Server Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["mcp_profile_id", "name", "trust_level", "enabled", "network_access", "write_actions_allowed", "approval_required", "created_at"],
+  "properties": {
+    "mcp_profile_id": {"type": "string", "pattern": "^mcpprof_[a-zA-Z0-9_.-]+$"},
+    "name": {"type": "string", "minLength": 1},
+    "trust_level": {"type": "string", "enum": ["verified_local", "verified_external", "unverified", "blocked"]},
+    "enabled": {"type": "boolean", "const": false},
+    "network_access": {"type": "boolean"},
+    "write_actions_allowed": {"type": "boolean", "const": false},
+    "approval_required": {"type": "boolean", "const": true},
+    "allowed_tools": {"type": "array", "items": {"type": "string"}},
+    "created_at": {"type": "string"}
+  }
+}

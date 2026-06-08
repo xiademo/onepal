@@ -40,6 +40,14 @@ def run_cmd(cmd, timeout=180):
     return result.returncode, (result.stdout or "")[-3000:], (result.stderr or "")[-1000:]
 
 
+def write_report(path, content):
+    """Write generated Markdown with stable LF newlines and no trailing spaces."""
+    normalized = content.replace("\r\n", "\n").replace("\r", "\n")
+    normalized = "\n".join(line.rstrip() for line in normalized.split("\n")).rstrip() + "\n"
+    with path.open("w", encoding="utf-8", newline="\n") as f:
+        f.write(normalized)
+
+
 def check_file(path_str):
     """Check if a file exists and is parseable JSON."""
     p = PROJECT_ROOT / path_str
@@ -180,10 +188,17 @@ def main():
         "--glob", "!scripts/memory_candidate.py",
         "--glob", "!scripts/research_packet.py",
         "--glob", "!scripts/growth_goal.py",
+        "--glob", "!scripts/memory_governance.py",
+        "--glob", "!scripts/career_center.py",
+        "--glob", "!scripts/readiness_center.py",
         "--glob", "!tests/test_memory_center.py",
         "--glob", "!tests/test_api_server.py",
         "--glob", "!tests/test_research_center.py",
         "--glob", "!tests/test_growth_center.py",
+        "--glob", "!tests/test_schema_pack_builder_memory.py",
+        "--glob", "!tests/test_memory_governance.py",
+        "--glob", "!tests/test_career_center.py",
+        "--glob", "!tests/test_readiness_centers.py",
         "--glob", "!scripts/api_server.py",
         "--glob", "!registries/**",
         ".",
@@ -338,7 +353,7 @@ Generated: {now_iso()}
         report += f"**{cf} critical failures**. Resolve before proceeding.\n"
 
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_PATH.write_text(report, encoding="utf-8")
+    write_report(REPORT_PATH, report)
     print(f"Report: {REPORT_PATH}")
 
     print("\n" + "=" * 60)

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/jd_item.schema.json",
+  "title": "Job Description Item",
+  "description": "Local job description record for career matching and application planning.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jd_id", "title", "company", "description_summary", "requirements", "status", "created_at"],
+  "properties": {
+    "jd_id": {"type": "string", "pattern": "^jd_[a-zA-Z0-9_.-]+$"},
+    "title": {"type": "string", "minLength": 1},
+    "company": {"type": "string"},
+    "description_summary": {"type": "string"},
+    "requirements": {"type": "array", "items": {"type": "string"}},
+    "source_ref": {"type": ["string", "null"]},
+    "status": {"type": "string", "enum": ["draft", "active", "archived"]},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": ["string", "null"]}
+  }
+}

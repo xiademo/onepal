@@ -19,10 +19,21 @@ CSS = DASHBOARD / "style.css"
 
 ALLOWED_ENDPOINTS = {
     "/health", "/tasks", "/task-trees", "/task-runs", "/mas-trace", "/command",
+    "/memory", "/memory/candidates", "/memory/proposals", "/memory/store", "/memory/archive",
+    "/memory/reviews", "/memory/conflicts", "/memory/changes", "/memory/snapshots",
+    "/research/sources", "/research/packets", "/research/evidence",
+    "/research/cognition-cards", "/research/handoffs", "/research/archive",
     "/growth/candidates", "/growth/candidates/accept", "/growth/candidates/reject",
     "/growth/goals", "/growth/capacity", "/growth/weekly-plans",
     "/growth/daily-tasks", "/growth/daily-tasks/status", "/growth/reviews",
     "/growth/adjustments", "/growth/handoffs", "/growth/archive",
+    "/career/assets", "/career/claims", "/career/jds", "/career/evaluations",
+    "/career/applications", "/career/handoffs",
+    "/automation/workflows", "/automation/runs",
+    "/skills/candidates", "/skills/reviews",
+    "/knowledge/nodes", "/knowledge/edges", "/knowledge/boundaries", "/knowledge/state",
+    "/model/routes", "/model/cost-events",
+    "/mcp/profiles", "/mcp/tool-policies",
 }
 FORBIDDEN_PATTERNS = [
     "runtime/", "logs/", "command_gateway.py", "runtime_runner.py",
@@ -188,7 +199,7 @@ print("\n--- T43-T64: Growth Panel static checks ---")
 test("T43: index.html contains growth-panel", 'id="growth-panel"' in html)
 test("T44: index.html growth refresh button", 'id="growth-refresh-btn"' in html)
 panel_count = len(re.findall(r'<section class="panel ', html))
-test("T45: index.html contains 8 panels", panel_count == 8, f"panels={panel_count}")
+test("T45: index.html contains 14 panels", panel_count == 14, f"panels={panel_count}")
 test("T46: style.css growth panel full width", ".growth-panel" in css and "grid-column: 1 / -1" in css)
 test("T47: growth panel appears after research panel", html.find('id="research-panel"') < html.find('id="growth-panel"'))
 for label, ep in [
@@ -212,6 +223,98 @@ test("T61: app.js no growth_review.py call", "growth_review.py" not in js)
 test("T62: app.js no memory store write from growth", "/memory/store" not in js[js.find("Growth Center Panel"):])
 test("T63: app.js growth create form ids", "growth-title" in js and "growth-area" in js and "growth-reason" in js)
 test("T64: app.js no dangerous growth patterns", "eval(" not in js_stripped and "new Function(" not in js_stripped and "child_process" not in js)
+
+# Memory Governance Tests (Task 14-B)
+print("\n--- T65-T77: Memory Governance static checks ---")
+for label, ep in [
+    ("T65: app.js GET /memory/reviews", "/memory/reviews"),
+    ("T66: app.js GET /memory/conflicts", "/memory/conflicts"),
+    ("T67: app.js GET /memory/changes", "/memory/changes"),
+    ("T68: app.js GET /memory/snapshots", "/memory/snapshots"),
+    ("T69: app.js POST /memory/reviews", "/memory/reviews"),
+    ("T70: app.js POST /memory/conflicts", "/memory/conflicts"),
+    ("T71: app.js POST /memory/snapshots", "/memory/snapshots"),
+]:
+    test(label, ep in js)
+test("T72: Memory panel shows Quality Reviews", "Quality Reviews" in js)
+test("T73: Memory panel shows Conflicts", "Conflicts" in js)
+test("T74: Memory panel shows Change Requests", "Change Requests" in js)
+test("T75: Memory panel shows Snapshots", "Snapshots" in js)
+test("T76: app.js no memory_governance.py direct call", "memory_governance.py" not in js)
+test("T77: memory governance uses API only",
+     "memory/reviews/" not in js and "memory/conflicts/" not in js and "memory/changes/" not in js and "memory/snapshots/" not in js)
+
+# Career Panel Tests (Task 15)
+print("\n--- T78-T94: Career Panel static checks ---")
+test("T78: index.html contains career-panel", 'id="career-panel"' in html)
+test("T79: index.html career refresh button", 'id="career-refresh-btn"' in html)
+test("T80: style.css career panel full width", ".career-panel" in css and "grid-column: 1 / -1" in css)
+test("T81: career panel appears after growth panel", html.find('id="growth-panel"') < html.find('id="career-panel"'))
+for label, ep in [
+    ("T82: app.js GET /career/assets", "/career/assets"),
+    ("T83: app.js GET /career/claims", "/career/claims"),
+    ("T84: app.js GET /career/jds", "/career/jds"),
+    ("T85: app.js GET /career/evaluations", "/career/evaluations"),
+    ("T86: app.js GET /career/applications", "/career/applications"),
+    ("T87: app.js GET /career/handoffs", "/career/handoffs"),
+    ("T88: app.js POST /career/assets", "/career/assets"),
+]:
+    test(label, ep in js)
+test("T89: app.js no direct career/ file access",
+     "career/assets/" not in js and "career/claims/" not in js and "career/jds/" not in js and
+     "career/evaluations/" not in js and "career/applications/" not in js and "career/handoffs/" not in js)
+test("T90: app.js no career_center.py call", "career_center.py" not in js)
+test("T91: app.js career create form ids", "career-asset-title" in js and "career-asset-type" in js and "career-evidence" in js)
+test("T92: Career panel shows manual application state", "Auto Submit" in js)
+test("T93: app.js no dangerous career patterns", "eval(" not in js_stripped and "new Function(" not in js_stripped and "child_process" not in js)
+test("T94: refreshAll includes Career", "refreshCareer();" in js)
+
+# Readiness Panels Tests (Tasks 16-20)
+print("\n--- T95-T133: Readiness Panel static checks ---")
+for pid in ["automation-panel", "skills-panel", "knowledge-panel", "model-panel", "mcp-panel"]:
+    test("T95-panel-" + pid + ": exists", f'id="{pid}"' in html)
+for cls in [".automation-panel", ".skills-panel", ".knowledge-panel", ".model-panel", ".mcp-panel"]:
+    test("T96-style-" + cls + ": full width", cls in css and "grid-column: 1 / -1" in css)
+for label, ep in [
+    ("T97: GET /automation/workflows", "/automation/workflows"),
+    ("T98: GET /automation/runs", "/automation/runs"),
+    ("T99: GET /skills/candidates", "/skills/candidates"),
+    ("T100: GET /skills/reviews", "/skills/reviews"),
+    ("T101: GET /knowledge/nodes", "/knowledge/nodes"),
+    ("T102: GET /knowledge/edges", "/knowledge/edges"),
+    ("T103: GET /knowledge/boundaries", "/knowledge/boundaries"),
+    ("T104: GET /knowledge/state", "/knowledge/state"),
+    ("T105: GET /model/routes", "/model/routes"),
+    ("T106: GET /model/cost-events", "/model/cost-events"),
+    ("T107: GET /mcp/profiles", "/mcp/profiles"),
+    ("T108: GET /mcp/tool-policies", "/mcp/tool-policies"),
+    ("T109: POST /automation/workflows", "/automation/workflows"),
+    ("T110: POST /skills/candidates", "/skills/candidates"),
+    ("T111: POST /knowledge/nodes", "/knowledge/nodes"),
+    ("T112: POST /model/routes", "/model/routes"),
+    ("T113: POST /mcp/profiles", "/mcp/profiles"),
+]:
+    test(label, ep in js)
+test("T114: no readiness script direct call", "readiness_center.py" not in js)
+test("T115: no automation direct files", "automation/workflows/" not in js and "automation/runs/" not in js)
+test("T116: no capability direct files", "capabilities/" not in js)
+test("T117: no knowledge graph direct files", "knowledge_graph/" not in js)
+test("T118: no model cost direct files", "model_cost/" not in js)
+test("T119: no mcp direct files", "mcp/profiles/" not in js and "mcp/policies/" not in js)
+test("T120: Automation shows disabled/preflight columns", "Enabled" in js and "Outputs" in js)
+test("T121: Skills show sandbox/enabled columns", "Sandbox" in js and "Enabled After" in js)
+test("T122: Knowledge shows RAG disabled state", "RAG" in js and "disabled" in js)
+test("T123: Model panel shows LiteLLM", "LiteLLM" in js)
+test("T124: MCP panel shows Write", "MCP Profiles" in js and "Write" in js)
+test("T125: refreshAll includes Automation", "refreshAutomation();" in js)
+test("T126: refreshAll includes Skills", "refreshSkills();" in js)
+test("T127: refreshAll includes Knowledge", "refreshKnowledge();" in js)
+test("T128: refreshAll includes Model/Cost", "refreshModelCost();" in js)
+test("T129: refreshAll includes MCP", "refreshMcpTools();" in js)
+test("T130: readiness create form ids", "automation-name" in js and "skill-name" in js and "knowledge-label" in js)
+test("T131: model/mcp create form ids", "model-task-type" in js and "mcp-name" in js)
+test("T132: no dangerous readiness patterns", "eval(" not in js_stripped and "new Function(" not in js_stripped and "child_process" not in js)
+test("T133: mcp write disabled text", "write_actions_allowed" in js and "write_allowed" in js)
 
 # Summary
 print("\n" + "=" * 60)

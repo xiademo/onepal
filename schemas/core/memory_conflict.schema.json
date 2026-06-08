@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/memory_conflict.schema.json",
+  "title": "Memory Conflict",
+  "description": "Conflict record between a candidate/entry and existing memories. It supports duplicate detection, contradiction review, scope separation, supersession, and user confirmation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "memory_conflict_id",
+    "conflict_type",
+    "severity",
+    "status",
+    "summary",
+    "detected_at",
+    "detected_by",
+    "candidate_ref",
+    "existing_memory_refs",
+    "resolution"
+  ],
+  "properties": {
+    "memory_conflict_id": {
+      "type": "string",
+      "pattern": "^memconf_[a-zA-Z0-9_.-]+$"
+    },
+    "conflict_type": {
+      "type": "string",
+      "enum": [
+        "duplicate",
+        "contradiction",
+        "scope_overlap",
+        "outdated",
+        "sensitivity_mismatch",
+        "source_conflict",
+        "retention_conflict",
+        "other"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "pending_user_review",
+        "pending_curator_review",
+        "resolved",
+        "ignored",
+        "auto_closed",
+        "archived"
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "detected_at": {
+      "type": "string"
+    },
+    "detected_by": {
+      "type": "string"
+    },
+    "candidate_ref": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^memcand_[a-zA-Z0-9_.-]+$"
+    },
+    "entry_ref": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^mem_[a-zA-Z0-9_.-]+$"
+    },
+    "existing_memory_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^mem_[a-zA-Z0-9_.-]+$"
+      },
+      "minItems": 1
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommended_resolution": {
+      "type": "string",
+      "enum": [
+        "merge",
+        "supersede_existing",
+        "supersede_candidate",
+        "reject_candidate",
+        "split_scope",
+        "request_user_confirmation",
+        "ignore",
+        "manual_review"
+      ]
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy",
+        "requires_user_approval"
+      ],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "unresolved",
+            "merge",
+            "supersede_existing",
+            "supersede_candidate",
+            "reject_candidate",
+            "split_scope",
+            "ignore",
+            "manual_review"
+          ]
+        },
+        "requires_user_approval": {
+          "type": "boolean"
+        },
+        "decision_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resolved_by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resolved_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resolution_note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "audit_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

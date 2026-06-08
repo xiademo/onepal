@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/memory_quality_review.schema.json",
+  "title": "Memory Quality Review",
+  "description": "Quality review for a memory candidate or active memory entry. It prevents low-value, vague, duplicate, sensitive, or unstable information from polluting long-term memory.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "memory_quality_review_id",
+    "target_type",
+    "target_ref",
+    "reviewer_agent",
+    "created_at",
+    "scores",
+    "overall_score",
+    "recommendation",
+    "requires_user_confirmation"
+  ],
+  "properties": {
+    "memory_quality_review_id": {
+      "type": "string",
+      "pattern": "^memqr_[a-zA-Z0-9_.-]+$"
+    },
+    "target_type": {
+      "type": "string",
+      "enum": [
+        "candidate",
+        "entry"
+      ]
+    },
+    "target_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewer_agent": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clarity",
+        "specificity",
+        "evidence_strength",
+        "stability",
+        "actionability",
+        "non_sensitivity",
+        "non_duplicate",
+        "scope_fit"
+      ],
+      "properties": {
+        "clarity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "specificity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "evidence_strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "stability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "actionability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "non_sensitivity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "non_duplicate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "scope_fit": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "overall_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommendation": {
+      "type": "string",
+      "enum": [
+        "approve",
+        "approve_with_edit",
+        "request_user_confirmation",
+        "merge",
+        "archive",
+        "reject_candidate",
+        "redact",
+        "forget",
+        "keep_for_short_term_only"
+      ]
+    },
+    "requires_user_confirmation": {
+      "type": "boolean"
+    },
+    "suggested_scope": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "global",
+        "owner",
+        "shared",
+        "project",
+        "agent",
+        "workflow",
+        "skill",
+        "session_archive",
+        null
+      ]
+    },
+    "suggested_retention": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "short",
+        "medium",
+        "long",
+        "permanent_review_required",
+        null
+      ]
+    },
+    "review_notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "recommendation": {
+            "enum": [
+              "redact",
+              "forget",
+              "approve_with_edit",
+              "request_user_confirmation"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "requires_user_confirmation": {
+            "const": true
+          }
+        }
+      }
+    }
+  ]
+}
