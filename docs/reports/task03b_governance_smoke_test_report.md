@@ -1,6 +1,6 @@
 # Task 03-B Governance Smoke Test Report
 
-Generated: 2026-06-08T03:25:00.073318+00:00
+Generated: 2026-06-09T02:35:32.002823+00:00
 
 ## 1. Summary
 
@@ -92,15 +92,15 @@ Report: D:\git\ai\workspaces\onepal\docs\reports\task02_schema_validation_report
 
 ## 4. JSONL Parse Audit
 
-Total JSONL lines: 15, bad: 0
+Total JSONL lines: 43, bad: 0
 
 ## 5. Git Check-Ignore
 
 ```
-  [IGNORED] runtime/actions/action_executions.jsonl -> .gitignore:16:runtime/**/*.jsonl	runtime/actions/action_executions.jsonl
-  [IGNORED] runtime/audit/state_mutation_audit.jsonl -> .gitignore:16:runtime/**/*.jsonl	runtime/audit/state_mutation_audit.jsonl
-  [IGNORED] runtime/approvals/proposals.jsonl -> .gitignore:16:runtime/**/*.jsonl	runtime/approvals/proposals.jsonl
-  [IGNORED] runtime/approvals/approval_decisions.jsonl -> .gitignore:16:runtime/**/*.jsonl	runtime/approvals/approval_decisions.jsonl
+  [IGNORED] runtime/actions/action_executions.jsonl -> .gitignore:18:runtime/**/*.jsonl	runtime/actions/action_executions.jsonl
+  [IGNORED] runtime/audit/state_mutation_audit.jsonl -> .gitignore:18:runtime/**/*.jsonl	runtime/audit/state_mutation_audit.jsonl
+  [IGNORED] runtime/approvals/proposals.jsonl -> .gitignore:18:runtime/**/*.jsonl	runtime/approvals/proposals.jsonl
+  [IGNORED] runtime/approvals/approval_decisions.jsonl -> .gitignore:18:runtime/**/*.jsonl	runtime/approvals/approval_decisions.jsonl
 ```
 
 ## 6. Warnings

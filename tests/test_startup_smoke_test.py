@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PY = "py"
+PY = sys.executable
 PS = "powershell"
 
 passed = 0
@@ -125,38 +125,9 @@ def test_T7():
 # T8: no secrets hit in project files
 def test_T8():
     print("\n--- T8: no secrets hit ---")
-    ec, stdout, stderr = run_cmd([
-        "rg", "--no-heading", "-n", "-i",
-        "(?:api[_-]?key|sk-[a-zA-Z0-9]{10,}|-----BEGIN.*KEY|token.*[=\\s][a-zA-Z0-9+/=]{20,})",
-        "--glob", "!**/.git/**",
-        "--glob", "!**/runtime/**",
-        "--glob", "!**/logs/**",
-        "--glob", "!**/node_modules/**",
-        "--glob", "!**/.omo/**",
-        "--glob", "!**/docs/**",
-        "--glob", "!**/*.md",
-        "--glob", "!scripts/run_startup_smoke_test.py",
-        "--glob", "!tests/test_startup_smoke_test.py",
-        "--glob", "!scripts/request_action.py",
-        "--glob", "!scripts/memory_candidate.py",
-        "--glob", "!scripts/research_packet.py",
-        "--glob", "!scripts/growth_goal.py",
-        "--glob", "!scripts/memory_governance.py",
-        "--glob", "!scripts/career_center.py",
-        "--glob", "!scripts/readiness_center.py",
-        "--glob", "!tests/test_memory_center.py",
-        "--glob", "!tests/test_api_server.py",
-        "--glob", "!tests/test_research_center.py",
-        "--glob", "!tests/test_growth_center.py",
-        "--glob", "!tests/test_schema_pack_builder_memory.py",
-        "--glob", "!tests/test_memory_governance.py",
-        "--glob", "!tests/test_career_center.py",
-        "--glob", "!tests/test_readiness_centers.py",
-        "--glob", "!scripts/api_server.py",
-        "--glob", "!registries/**",
-        ".",
-    ], timeout=30)
-    hits = len(stdout.strip().split("\n")) if stdout.strip() else 0
+    sys.path.insert(0, str(PROJECT_ROOT))
+    from scripts.run_startup_smoke_test import scan_secret_hits
+    hits = scan_secret_hits()
     return test("T8: no secrets", hits == 0, f"{hits} hits" if hits else "clean")
 
 

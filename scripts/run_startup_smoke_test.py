@@ -16,6 +16,7 @@ Usage:
 """
 
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -27,8 +28,38 @@ SMOKE_DIR = RUNTIME / "smoke_tests"
 HEALTH_FILE = RUNTIME / "health_status.json"
 REPORT_PATH = PROJECT_ROOT / "docs" / "reports" / "task04_startup_smoke_test_report.md"
 
-PY = "py"
+PY = sys.executable
 PS = "powershell"
+SECRET_SCAN_PATTERN = re.compile(
+    r"(?:api[_-]?key|sk-[a-zA-Z0-9]{10,}|-----BEGIN.*KEY|"
+    r"token.*[=\s][a-zA-Z0-9+/=]{20,}|password.*[=\s]\S{8,}|secret.*[=\s]\S{8,})",
+    re.IGNORECASE,
+)
+SECRET_SCAN_EXCLUDED_DIRS = {
+    ".git", "runtime", "logs", "node_modules", ".omo", "OpenCode",
+    "__pycache__", "docs", "registries",
+}
+SECRET_SCAN_EXCLUDED_SUFFIXES = {".md", ".pyc"}
+SECRET_SCAN_EXCLUDED_FILES = {
+    "scripts/run_startup_smoke_test.py",
+    "tests/test_startup_smoke_test.py",
+    "scripts/request_action.py",
+    "scripts/memory_candidate.py",
+    "scripts/research_packet.py",
+    "scripts/growth_goal.py",
+    "scripts/memory_governance.py",
+    "scripts/career_center.py",
+    "scripts/readiness_center.py",
+    "scripts/api_server.py",
+    "tests/test_memory_center.py",
+    "tests/test_api_server.py",
+    "tests/test_research_center.py",
+    "tests/test_growth_center.py",
+    "tests/test_schema_pack_builder_memory.py",
+    "tests/test_memory_governance.py",
+    "tests/test_career_center.py",
+    "tests/test_readiness_centers.py",
+}
 
 
 def now_iso():
@@ -38,6 +69,31 @@ def now_iso():
 def run_cmd(cmd, timeout=180):
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, encoding="utf-8", errors="replace")
     return result.returncode, (result.stdout or "")[-3000:], (result.stderr or "")[-1000:]
+
+
+def is_secret_scan_excluded(path):
+    rel = path.relative_to(PROJECT_ROOT)
+    rel_posix = rel.as_posix()
+    if rel_posix in SECRET_SCAN_EXCLUDED_FILES:
+        return True
+    if path.suffix in SECRET_SCAN_EXCLUDED_SUFFIXES:
+        return True
+    return any(part in SECRET_SCAN_EXCLUDED_DIRS for part in rel.parts)
+
+
+def scan_secret_hits():
+    hits = 0
+    for path in PROJECT_ROOT.rglob("*"):
+        if not path.is_file() or is_secret_scan_excluded(path):
+            continue
+        try:
+            with path.open("r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    if SECRET_SCAN_PATTERN.search(line):
+                        hits += 1
+        except OSError:
+            continue
+    return hits
 
 
 def write_report(path, content):
@@ -170,40 +226,7 @@ def main():
 
     # --- Check 7: Secrets Scan ---
     print("\n--- Check: Secrets Scan ---")
-    ec, stdout, stderr = run_cmd([
-        "rg", "--no-heading", "-n", "-i",
-        "(?:api[_-]?key|sk-[a-zA-Z0-9]{10,}|-----BEGIN.*KEY|token.*[=\\s][a-zA-Z0-9+/=]{20,}|password.*[=\\s]\\S{8,}|secret.*[=\\s]\\S{8,})",
-        "--glob", "!**/.git/**",
-        "--glob", "!**/runtime/**",
-        "--glob", "!**/logs/**",
-        "--glob", "!**/node_modules/**",
-        "--glob", "!**/.omo/**",
-        "--glob", "!**/OpenCode/**",
-        "--glob", "!**/__pycache__/**",
-        "--glob", "!**/docs/**",
-        "--glob", "!**/*.md",
-        "--glob", "!scripts/run_startup_smoke_test.py",
-        "--glob", "!tests/test_startup_smoke_test.py",
-        "--glob", "!scripts/request_action.py",
-        "--glob", "!scripts/memory_candidate.py",
-        "--glob", "!scripts/research_packet.py",
-        "--glob", "!scripts/growth_goal.py",
-        "--glob", "!scripts/memory_governance.py",
-        "--glob", "!scripts/career_center.py",
-        "--glob", "!scripts/readiness_center.py",
-        "--glob", "!tests/test_memory_center.py",
-        "--glob", "!tests/test_api_server.py",
-        "--glob", "!tests/test_research_center.py",
-        "--glob", "!tests/test_growth_center.py",
-        "--glob", "!tests/test_schema_pack_builder_memory.py",
-        "--glob", "!tests/test_memory_governance.py",
-        "--glob", "!tests/test_career_center.py",
-        "--glob", "!tests/test_readiness_centers.py",
-        "--glob", "!scripts/api_server.py",
-        "--glob", "!registries/**",
-        ".",
-    ], timeout=30)
-    secret_lines = len(stdout.strip().split("\n")) if stdout.strip() else 0
+    secret_lines = scan_secret_hits()
     ok = secret_lines == 0
     check = {"check": "secrets_scan", "pass": ok, "msg": f"{secret_lines} potential hits" if secret_lines else "clean", "critical": True}
     if ok:

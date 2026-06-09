@@ -7,7 +7,7 @@ Usage: py tests/test_research_center.py
 import json, subprocess, sys, tempfile
 from pathlib import Path
 
-PROJECT_ROOT=Path(__file__).resolve().parent.parent; PY="py"
+PROJECT_ROOT=Path(__file__).resolve().parent.parent; PY=sys.executable
 RP=PROJECT_ROOT/"scripts"/"research_packet.py"
 CC=PROJECT_ROOT/"scripts"/"cognition_card.py"
 passed,failed=0,0

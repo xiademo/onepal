@@ -22,7 +22,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 REPORT_PATH = PROJECT_ROOT / "docs" / "reports" / "task03b_governance_smoke_test_report.md"
 
-PY = "py"
+PY = sys.executable
 PS = "powershell"
 
 

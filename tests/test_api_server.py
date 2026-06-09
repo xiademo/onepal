@@ -204,7 +204,7 @@ def test_T16(tmpdir):
 # --- Integration Test: Real HTTP Server ---
 
 def test_T17():
-    """T17: Real HTTP server starts, handles /health, stops."""
+    """T17: Real HTTP server starts, handles /health and CORS, stops."""
     print("\n--- T17: Real HTTP server integration ---")
     from scripts.api_server import create_server, OnePalHandler
     import tempfile
@@ -231,10 +231,19 @@ def test_T17():
         # Make request
         url = f"http://{host}:{port}/health"
         resp = urllib.request.urlopen(url, timeout=5)
+        cors = resp.headers.get("Access-Control-Allow-Origin")
         body = json.loads(resp.read().decode("utf-8"))
         ok = body.get("ok") and body["data"].get("status") == "ready"
         result = test("T17: real HTTP server /health returns ready", ok, str(body.get("data", {}).get("status")))
-        return result
+
+        cors_ok = cors == "*"
+        test("T17b: real HTTP server sends CORS header", cors_ok, f"cors={cors}")
+
+        options_req = urllib.request.Request(url, method="OPTIONS")
+        options_resp = urllib.request.urlopen(options_req, timeout=5)
+        options_ok = options_resp.status == 204 and options_resp.headers.get("Access-Control-Allow-Methods")
+        test("T17c: real HTTP server handles OPTIONS", options_ok, f"status={options_resp.status}")
+        return result and cors_ok and options_ok
     except Exception as e:
         return test("T17: real HTTP server integration", False, str(e))
     finally:

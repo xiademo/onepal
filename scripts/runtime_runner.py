@@ -28,7 +28,7 @@ TASK_RUNS_LOG = PROJECT_ROOT / "runtime" / "task_runs" / "task_runs.jsonl"
 MAS_TRACE = PROJECT_ROOT / "logs" / "mas_trace.jsonl"
 REQUEST_ACTION = PROJECT_ROOT / "scripts" / "request_action.py"
 
-PY = "py"
+PY = sys.executable
 
 
 def now_iso():

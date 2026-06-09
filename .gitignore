@@ -11,6 +11,8 @@ build/
 # Local runtime state
 runtime/*.lock
 runtime/*.tmp
+runtime/*.pid
+runtime/*.log
 runtime/smoke_tests.jsonl
 runtime/*.jsonl
 runtime/**/*.jsonl

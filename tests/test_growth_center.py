@@ -7,7 +7,7 @@ Usage: py tests/test_growth_center.py
 import json, subprocess, sys, tempfile
 from pathlib import Path
 
-ROOT=Path(__file__).resolve().parent.parent; PY="py"
+ROOT=Path(__file__).resolve().parent.parent; PY=sys.executable
 GG=ROOT/"scripts"/"growth_goal.py"; GP=ROOT/"scripts"/"growth_plan.py"; GR=ROOT/"scripts"/"growth_review.py"
 passed,failed=0,0
 

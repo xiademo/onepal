@@ -11,7 +11,7 @@ import tempfile
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PY = "py"
+PY = sys.executable
 SCRIPT = PROJECT_ROOT / "scripts" / "readiness_center.py"
 
 SCHEMAS = [
