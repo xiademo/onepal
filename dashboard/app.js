@@ -1,5 +1,5 @@
 /* OnePal Dashboard App - Task 07-B
- * API client, state management, and DOM rendering for 8 panels.
+ * API client, state management, and DOM rendering for 14 panels.
  * Uses fetch() exclusively. Zero external dependencies. Zero CDN.
  * Avoids eval / new Function / direct file access.
  */
@@ -14,6 +14,7 @@ var refreshTimer = null;
 var apiBadge = document.getElementById('api-badge');
 var apiUrlEl = document.getElementById('api-url');
 var refreshAllBtn = document.getElementById('refresh-all-btn');
+var toastRegion = document.getElementById('toast-region');
 
 // ─── State ───
 var state = {
@@ -85,6 +86,20 @@ function showError(container, msg, retryFn) {
     div.appendChild(btn);
   }
   container.appendChild(div);
+}
+
+function showToast(message, type) {
+  if (!toastRegion) return;
+  var cls = 'toast toast-' + (type || 'info');
+  var toast = el('div', cls, message || 'Action failed');
+  toastRegion.appendChild(toast);
+  setTimeout(function() {
+    if (toast.parentNode) toast.parentNode.removeChild(toast);
+  }, 3600);
+}
+
+function handleActionError(error) {
+  showToast(error && error.message ? error.message : 'Action failed', 'error');
 }
 
 function buildTable(columns, rows) {
@@ -496,9 +511,9 @@ function renderMemory(body) {
       (function() {
         var wrap = el('span', 'action-row');
         var r = el('button', 'btn btn-sm', 'Review');
-        r.onclick = function() { apiPost('/memory/reviews', {target_type: 'entry', target_ref: m.memory_id}).then(function() { refreshMemory(); }).catch(function(e) { alert(e.message); }); };
+        r.onclick = function() { apiPost('/memory/reviews', {target_type: 'entry', target_ref: m.memory_id}).then(function() { refreshMemory(); }).catch(handleActionError); };
         var a = el('button', 'btn btn-sm', 'Archive');
-        a.onclick = function() { apiPost('/memory/archive', {memory_id: m.memory_id, reason: 'manual'}).then(function() { refreshMemory(); }).catch(function(e) { alert(e.message); }); };
+        a.onclick = function() { apiPost('/memory/archive', {memory_id: m.memory_id, reason: 'manual'}).then(function() { refreshMemory(); }).catch(handleActionError); };
         wrap.appendChild(r); wrap.appendChild(a); return wrap;
       })()
     ];
@@ -510,7 +525,7 @@ function renderMemory(body) {
   snapshotBtn.onclick = function() {
     apiPost('/memory/snapshots', {reason: 'dashboard snapshot before memory change'})
       .then(function() { refreshMemory(); })
-      .catch(function(e) { alert(e.message); });
+      .catch(handleActionError);
   };
   container.appendChild(snapshotBtn);
 
@@ -526,13 +541,13 @@ function renderMemory(body) {
       (function() {
         var wrap = el('span', 'action-row');
         var review = el('button', 'btn btn-sm', 'Review');
-        review.onclick = function() { apiPost('/memory/reviews', {target_type: 'candidate', target_ref: c.candidate_id}).then(function() { refreshMemory(); }).catch(function(e) { alert(e.message); }); };
+        review.onclick = function() { apiPost('/memory/reviews', {target_type: 'candidate', target_ref: c.candidate_id}).then(function() { refreshMemory(); }).catch(handleActionError); };
         var check = el('button', 'btn btn-sm', 'Check');
-        check.onclick = function() { apiPost('/memory/conflicts', {target_type: 'candidate', target_ref: c.candidate_id}).then(function() { refreshMemory(); }).catch(function(e) { alert(e.message); }); };
+        check.onclick = function() { apiPost('/memory/conflicts', {target_type: 'candidate', target_ref: c.candidate_id}).then(function() { refreshMemory(); }).catch(handleActionError); };
         wrap.appendChild(review); wrap.appendChild(check);
         if (c.status === 'captured' || c.status === 'draft') {
           var a = el('button', 'btn btn-sm', 'Propose');
-          a.onclick = function() { apiPost('/memory/proposals', {candidate_id: c.candidate_id}).then(function() { refreshMemory(); }).catch(function(e) { alert(e.message); }); };
+          a.onclick = function() { apiPost('/memory/proposals', {candidate_id: c.candidate_id}).then(function() { refreshMemory(); }).catch(handleActionError); };
           wrap.appendChild(a);
         }
         return wrap;
@@ -549,7 +564,7 @@ function renderMemory(body) {
       el('span', 'mono', (p.proposal_id || '').substring(0, 14)),
       p.memory_type || '?',
       badge(p.status || '?', 'status-' + (p.status || '')),
-      (p.status === 'approved' ? (function() { var a = el('button', 'btn btn-sm', 'Store'); a.onclick = function() { apiPost('/memory/store', {proposal_id: p.proposal_id}).then(function() { refreshMemory(); }).catch(function(e) { alert(e.message); }); }; return a; })() : el('span', '', ''))
+      (p.status === 'approved' ? (function() { var a = el('button', 'btn btn-sm', 'Store'); a.onclick = function() { apiPost('/memory/store', {proposal_id: p.proposal_id}).then(function() { refreshMemory(); }).catch(handleActionError); }; return a; })() : el('span', '', ''))
     ];
   });
   container.appendChild(buildTable(propCols, propRows));
@@ -639,7 +654,7 @@ function renderResearch(body) {
   formDiv.appendChild(el('h3','','Create Source'));
   var inp = el('input'); inp.type='text'; inp.id='rsrc-content'; inp.placeholder='Source content...'; inp.maxLength=2000; formDiv.appendChild(inp);
   var tsel = el('select'); tsel.id='rsrc-type'; ['manual_text','article_summary','paper_summary'].forEach(function(t){var o=el('option');o.value=t;o.textContent=t;tsel.appendChild(o)}); formDiv.appendChild(tsel);
-  var btn = el('button','btn btn-primary','Create'); btn.onclick=function(){var ct=document.getElementById('rsrc-content').value.trim();if(!ct){alert('Content required');return}apiPost('/research/sources',{title:'Research Source',content_summary:ct,source_type:document.getElementById('rsrc-type').value}).then(function(){refreshResearch()}).catch(function(e){alert(e.message)})}; formDiv.appendChild(btn);
+  var btn = el('button','btn btn-primary','Create'); btn.onclick=function(){var ct=document.getElementById('rsrc-content').value.trim();if(!ct){showToast('Content required','error');return}apiPost('/research/sources',{title:'Research Source',content_summary:ct,source_type:document.getElementById('rsrc-type').value}).then(function(){refreshResearch()}).catch(handleActionError)}; formDiv.appendChild(btn);
   c.appendChild(formDiv);
   c.appendChild(el('h3','','Sources ('+srcs.length+')'));
   c.appendChild(el('h3','','Packets ('+pkts.length+')'));
@@ -730,7 +745,7 @@ function renderGrowth(body) {
       shortText(c.title, 48),
       c.goal_area || '?',
       badge(c.status || '?', 'status-' + (c.status || '')),
-      (c.status === 'captured' ? (function(){var a=el('button','btn btn-sm','Accept');a.onclick=function(){apiPost('/growth/candidates/accept',{candidate_id:c.candidate_id}).then(function(){refreshGrowth()}).catch(function(e){alert(e.message)})};return a;})() : el('span','',''))
+      (c.status === 'captured' ? (function(){var a=el('button','btn btn-sm','Accept');a.onclick=function(){apiPost('/growth/candidates/accept',{candidate_id:c.candidate_id}).then(function(){refreshGrowth()}).catch(handleActionError)};return a;})() : el('span','',''))
     ];
   }), 'No growth candidates');
 
@@ -882,7 +897,7 @@ function renderAutomation(body) {
   form.appendChild(el('h3', '', 'Create Workflow'));
   var name = el('input'); name.type='text'; name.id='automation-name'; name.placeholder='Workflow name'; form.appendChild(name);
   var create = el('button','btn btn-primary','Create');
-  create.onclick=function(){var n=document.getElementById('automation-name').value.trim(); if(!n){return} apiPost('/automation/workflows',{name:n,action_refs:['read_file']}).then(function(){refreshAutomation()}).catch(function(e){alert(e.message)})};
+  create.onclick=function(){var n=document.getElementById('automation-name').value.trim(); if(!n){return} apiPost('/automation/workflows',{name:n,action_refs:['read_file']}).then(function(){refreshAutomation()}).catch(handleActionError)};
   form.appendChild(create); c.appendChild(form);
   appendGrowthTable(c, 'Workflows', ['ID','Name','Enabled','Approval','Status'], workflows.slice(0,10).map(function(w){return [idCell(w.workflow_id), shortText(w.name,50), w.enabled?'yes':'no', w.approval_required?'required':'not required', badge(w.status||'?','status-'+(w.status||''))]}), 'No workflows');
   appendGrowthTable(c, 'Runs', ['ID','Workflow','Status','Outputs'], runs.slice(0,10).map(function(r){return [idCell(r.workflow_run_id), idCell(r.workflow_id), badge(r.status||'?','status-'+(r.status||'')), (r.output_refs||[]).join(', ')]}), 'No workflow runs');
@@ -906,7 +921,7 @@ function renderSkills(body) {
   form.appendChild(el('h3', '', 'Create Skill Candidate'));
   var name = el('input'); name.type='text'; name.id='skill-name'; name.placeholder='Skill name'; form.appendChild(name);
   var create = el('button','btn btn-primary','Create');
-  create.onclick=function(){var n=document.getElementById('skill-name').value.trim(); if(!n){return} apiPost('/skills/candidates',{name:n}).then(function(){refreshSkills()}).catch(function(e){alert(e.message)})};
+  create.onclick=function(){var n=document.getElementById('skill-name').value.trim(); if(!n){return} apiPost('/skills/candidates',{name:n}).then(function(){refreshSkills()}).catch(handleActionError)};
   form.appendChild(create); c.appendChild(form);
   appendGrowthTable(c, 'Candidates', ['ID','Name','Risk','Sandbox','Enabled'], skills.slice(0,10).map(function(s){return [idCell(s.skill_id), shortText(s.name,50), s.risk_level||'?', s.sandbox_status||'?', s.enabled?'yes':'no']}), 'No skill candidates');
   appendGrowthTable(c, 'Reviews', ['ID','Skill','Result','Enabled After'], reviews.slice(0,10).map(function(r){return [idCell(r.skill_review_id), idCell(r.skill_ref), r.result||'?', r.enabled_after_review?'yes':'no']}), 'No skill reviews');
@@ -930,7 +945,7 @@ function renderKnowledge(body) {
   form.appendChild(el('h3', '', 'Create Node'));
   var label = el('input'); label.type='text'; label.id='knowledge-label'; label.placeholder='Node label'; form.appendChild(label);
   var create = el('button','btn btn-primary','Create');
-  create.onclick=function(){var n=document.getElementById('knowledge-label').value.trim(); if(!n){return} apiPost('/knowledge/nodes',{label:n}).then(function(){refreshKnowledge()}).catch(function(e){alert(e.message)})};
+  create.onclick=function(){var n=document.getElementById('knowledge-label').value.trim(); if(!n){return} apiPost('/knowledge/nodes',{label:n}).then(function(){refreshKnowledge()}).catch(handleActionError)};
   form.appendChild(create); c.appendChild(form);
   appendGrowthTable(c, 'Nodes', ['ID','Type','Label','Status'], nodes.slice(0,10).map(function(n){return [idCell(n.node_id), n.node_type||'?', shortText(n.label,56), badge(n.status||'?','status-'+(n.status||''))]}), 'No nodes');
   appendGrowthTable(c, 'Edges', ['ID','From','To','Relation'], edges.slice(0,10).map(function(e){return [idCell(e.edge_id), idCell(e.from_node_ref), idCell(e.to_node_ref), e.relation||'?']}), 'No edges');
@@ -958,7 +973,7 @@ function renderModelCost(body) {
   form.appendChild(el('h3', '', 'Create Route'));
   var task = el('input'); task.type='text'; task.id='model-task-type'; task.placeholder='Task type'; form.appendChild(task);
   var create = el('button','btn btn-primary','Create');
-  create.onclick=function(){var t=document.getElementById('model-task-type').value.trim(); if(!t){return} apiPost('/model/routes',{task_type:t}).then(function(){refreshModelCost()}).catch(function(e){alert(e.message)})};
+  create.onclick=function(){var t=document.getElementById('model-task-type').value.trim(); if(!t){return} apiPost('/model/routes',{task_type:t}).then(function(){refreshModelCost()}).catch(handleActionError)};
   form.appendChild(create); c.appendChild(form);
   appendGrowthTable(c, 'Routes', ['ID','Task','Model','LiteLLM','Status'], routes.slice(0,10).map(function(r){return [idCell(r.router_id), r.task_type||'?', r.default_model||'?', r.litellm_enabled?'enabled':'disabled', badge(r.status||'?','status-'+(r.status||''))]}), 'No model routes');
   appendGrowthTable(c, 'Cost Events', ['ID','Task','Model','USD'], costs.slice(0,10).map(function(e){return [idCell(e.cost_event_id), shortText(e.task_ref,24), e.model||'?', e.estimated_cost_usd]}), 'No cost events');
@@ -982,7 +997,7 @@ function renderMcpTools(body) {
   form.appendChild(el('h3', '', 'Create MCP Profile'));
   var name = el('input'); name.type='text'; name.id='mcp-name'; name.placeholder='MCP profile name'; form.appendChild(name);
   var create = el('button','btn btn-primary','Create');
-  create.onclick=function(){var n=document.getElementById('mcp-name').value.trim(); if(!n){return} apiPost('/mcp/profiles',{name:n}).then(function(){refreshMcpTools()}).catch(function(e){alert(e.message)})};
+  create.onclick=function(){var n=document.getElementById('mcp-name').value.trim(); if(!n){return} apiPost('/mcp/profiles',{name:n}).then(function(){refreshMcpTools()}).catch(handleActionError)};
   form.appendChild(create); c.appendChild(form);
   appendGrowthTable(c, 'MCP Profiles', ['ID','Name','Trust','Enabled','Write'], profiles.slice(0,10).map(function(p){return [idCell(p.mcp_profile_id), shortText(p.name,40), p.trust_level||'?', p.enabled?'yes':'no', p.write_actions_allowed?'yes':'no']}), 'No MCP profiles');
   appendGrowthTable(c, 'Tool Policies', ['ID','Tool','Trust','Write','Approval'], policies.slice(0,10).map(function(p){return [idCell(p.tool_trust_policy_id), shortText(p.tool_ref,30), p.trust_level||'?', p.write_allowed?'yes':'no', p.approval_required?'required':'not required']}), 'No tool policies');

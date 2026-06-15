@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""OnePal Startup Smoke Test - Task 04-A (T1-T10)
+"""OnePal Startup Smoke Test - Task 04-A (T1-T11)
 
 Tests for the Runtime / Health / Startup Smoke Test baseline.
 
@@ -131,6 +131,15 @@ def test_T8():
     return test("T8: no secrets", hits == 0, f"{hits} hits" if hits else "clean")
 
 
+# T11: local CodeGraph cache excluded from secrets scan
+def test_T11():
+    print("\n--- T11: codegraph cache excluded ---")
+    sys.path.insert(0, str(PROJECT_ROOT))
+    from scripts.run_startup_smoke_test import is_secret_scan_excluded
+    path = PROJECT_ROOT / ".codegraph" / "codegraph.db"
+    return test("T11: codegraph cache excluded", is_secret_scan_excluded(path))
+
+
 # T9: check_runtime_lock.py runs
 def test_T9():
     print("\n--- T9: check_runtime_lock.py runs ---")
@@ -164,7 +173,7 @@ def test_T10():
 def main():
     global passed, failed
     print("=" * 60)
-    print("OnePal Startup Smoke Tests (T1-T10)")
+    print("OnePal Startup Smoke Tests (T1-T11)")
     print("=" * 60)
 
     test_T1()
@@ -177,6 +186,7 @@ def main():
     test_T8()
     test_T9()
     test_T10()
+    test_T11()
 
     print("\n" + "=" * 60)
     total = passed + failed

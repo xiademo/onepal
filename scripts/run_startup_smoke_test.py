@@ -37,7 +37,7 @@ SECRET_SCAN_PATTERN = re.compile(
 )
 SECRET_SCAN_EXCLUDED_DIRS = {
     ".git", "runtime", "logs", "node_modules", ".omo", "OpenCode",
-    "__pycache__", "docs", "registries",
+    "__pycache__", "docs", "registries", ".codegraph",
 }
 SECRET_SCAN_EXCLUDED_SUFFIXES = {".md", ".pyc"}
 SECRET_SCAN_EXCLUDED_FILES = {

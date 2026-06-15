@@ -316,6 +316,20 @@ test("T131: model/mcp create form ids", "model-task-type" in js and "mcp-name" i
 test("T132: no dangerous readiness patterns", "eval(" not in js_stripped and "new Function(" not in js_stripped and "child_process" not in js)
 test("T133: mcp write disabled text", "write_actions_allowed" in js and "write_allowed" in js)
 
+# Dashboard UX Checks
+print("\n--- T134-T142: Dashboard UX static checks ---")
+test("T134: dashboard has panel navigation", 'class="panel-nav"' in html and 'class="nav-chip"' in html)
+nav_targets = re.findall(r'class="nav-chip"\s+href="#([^"]+)"', html)
+test("T135: panel navigation covers all panels", len(nav_targets) == 14 and all(f'id="{target}"' in html for target in nav_targets),
+     f"nav_targets={nav_targets}")
+test("T136: dashboard has toast live region", 'id="toast-region"' in html and 'aria-live="polite"' in html)
+test("T137: app.js uses toast error handling", "function showToast" in js and "function handleActionError" in js)
+test("T138: app.js has no blocking alert calls", "alert(" not in js_stripped)
+test("T139: app.js dashboard panel count comment is current", "DOM rendering for 14 panels" in js)
+test("T140: style.css supports smooth anchor navigation", "scroll-behavior: smooth" in css and "scroll-margin-top" in css)
+test("T141: style.css has keyboard focus states", ":focus-visible" in css)
+test("T142: style.css has mobile single-column layout", "@media (max-width: 900px)" in css and "grid-template-columns: 1fr" in css)
+
 # Summary
 print("\n" + "=" * 60)
 total = passed + failed
