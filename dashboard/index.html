@@ -1,67 +1,128 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OnePal Dashboard</title>
+<title>OnePal 本地工作台</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header class="header">
-  <h1>OnePal Dashboard</h1>
+  <div class="header-brand">
+    <span class="header-kicker">LOCAL AI WORKBENCH</span>
+    <h1>OnePal</h1>
+  </div>
   <div class="header-info">
-    <span class="api-badge" id="api-badge">API</span>
-    <span class="api-url" id="api-url">http://127.0.0.1:18790</span>
-    <button class="btn btn-sm" id="refresh-all-btn" title="Refresh all panels">Refresh All</button>
+    <span class="api-badge" id="api-badge">检测中</span>
+    <span class="api-url" id="api-url">本机服务</span>
+    <span class="current-view" id="current-view">连接设置</span>
+    <button class="btn btn-sm icon-btn" id="refresh-all-btn" title="刷新全部面板" aria-label="刷新全部面板">↻</button>
   </div>
 </header>
 
-<nav class="panel-nav" aria-label="Dashboard panels">
-  <a class="nav-chip" href="#health-panel">Health</a>
-  <a class="nav-chip" href="#command-panel">Command</a>
-  <a class="nav-chip" href="#tasks-panel">Tasks</a>
-  <a class="nav-chip" href="#runs-panel">Runs</a>
-  <a class="nav-chip" href="#trace-panel">Trace</a>
-  <a class="nav-chip" href="#memory-panel">Memory</a>
-  <a class="nav-chip" href="#research-panel">Research</a>
-  <a class="nav-chip" href="#growth-panel">Growth</a>
-  <a class="nav-chip" href="#career-panel">Career</a>
-  <a class="nav-chip" href="#automation-panel">Automation</a>
-  <a class="nav-chip" href="#skills-panel">Skills</a>
-  <a class="nav-chip" href="#knowledge-panel">Knowledge</a>
-  <a class="nav-chip" href="#model-panel">Model/Cost</a>
+<nav class="panel-nav" aria-label="工作台面板导航">
+  <a class="nav-chip" href="#setup-panel">连接设置</a>
+  <a class="nav-chip" href="#health-panel">健康状态</a>
+  <a class="nav-chip" href="#command-panel">命令</a>
+  <a class="nav-chip" href="#tasks-panel">任务</a>
+  <a class="nav-chip" href="#runs-panel">运行</a>
+  <a class="nav-chip" href="#trace-panel">追踪</a>
+  <a class="nav-chip" href="#memory-panel">记忆</a>
+  <a class="nav-chip" href="#research-panel">研究</a>
+  <a class="nav-chip" href="#growth-panel">成长</a>
+  <a class="nav-chip" href="#career-panel">职业</a>
+  <a class="nav-chip" href="#automation-panel">自动化</a>
+  <a class="nav-chip" href="#skills-panel">技能</a>
+  <a class="nav-chip" href="#knowledge-panel">知识图谱</a>
+  <a class="nav-chip" href="#model-panel">模型成本</a>
   <a class="nav-chip" href="#mcp-panel">MCP</a>
 </nav>
 
 <main class="grid">
 
+  <section class="panel setup-panel is-active" id="setup-panel">
+    <div class="panel-header">
+      <h2>连接设置</h2>
+      <span class="status-badge status-limited" id="setup-status-badge">待检测</span>
+    </div>
+    <div class="panel-body setup-body">
+      <div class="setup-grid">
+        <div class="setup-card">
+          <h3>本地工作台</h3>
+          <p class="setup-copy">工作台由 OnePal 本机 API 托管，并通过同源接口访问数据；外部网页不能读取本机配置或模型接口。</p>
+          <p class="setup-copy">当前地址：<code id="local-dashboard-url">检测中</code></p>
+          <button class="btn" id="test-local-api-btn">检测本地服务</button>
+          <div class="setup-result" id="local-api-result">尚未检测。先启动 API，再点击检测本地服务。</div>
+        </div>
+
+        <div class="setup-card setup-card-strong">
+          <h3>远程模型配置</h3>
+          <p class="setup-copy">仅支持 HTTPS OpenAI 兼容 Base URL。保存后只在本机私有目录中保留密钥，页面不会回显，Git 也不会跟踪该文件。</p>
+          <form class="provider-form" id="provider-config-form">
+            <label class="field-label" for="provider-base-url">Base URL</label>
+            <input type="url" id="provider-base-url" placeholder="https://provider.example/v1" autocomplete="off" required>
+            <label class="field-label" for="provider-model">模型名称</label>
+            <input type="text" id="provider-model" placeholder="例如：gpt-4.1-mini" autocomplete="off" maxlength="128" required>
+            <label class="field-label" for="provider-api-key">API Key</label>
+            <input type="password" id="provider-api-key" placeholder="仅保存到本机私有配置，不会回显" autocomplete="new-password" required>
+            <div class="provider-price-grid">
+              <label class="field-label" for="provider-input-price">输入单价（USD / 百万 tokens，可选）</label>
+              <label class="field-label" for="provider-output-price">输出单价（USD / 百万 tokens，可选）</label>
+              <input type="number" id="provider-input-price" min="0" step="0.000001" placeholder="未配置">
+              <input type="number" id="provider-output-price" min="0" step="0.000001" placeholder="未配置">
+            </div>
+            <label class="field-label" for="provider-budget">月度预算（USD，可选）</label>
+            <input type="number" id="provider-budget" min="0" step="0.01" placeholder="未配置">
+            <div class="action-row">
+              <button class="btn btn-primary" type="submit">保存本机配置</button>
+              <button class="btn" id="test-provider-btn" type="button">检测远程连接</button>
+            </div>
+          </form>
+          <div class="setup-result" id="provider-result">未配置远程模型。保存配置不会发起远程请求。</div>
+        </div>
+
+        <div class="setup-card setup-card-strong">
+          <h3>启动教程</h3>
+          <ol class="setup-steps">
+            <li><span>进入项目目录</span><code>cd D:\git\ai\workspaces\onepal</code></li>
+            <li><span>启动本地 API 与健康检查</span><code>powershell -ExecutionPolicy Bypass -File scripts\start_onepal.ps1</code></li>
+            <li><span>浏览器将打开本机工作台</span><code>http://127.0.0.1:18790/dashboard/</code></li>
+            <li><span>在“远程模型配置”中填写 Base URL、模型名和 API Key，再点击“检测远程连接”。</span></li>
+            <li><span>到“模型 / 成本”面板勾选远程发送确认后，才可以生成提案。提案不会自动写入记忆、任务或外部系统。</span></li>
+            <li><span>停止服务</span><code>powershell -ExecutionPolicy Bypass -File scripts\stop_onepal.ps1</code></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Health Panel -->
   <section class="panel health-panel" id="health-panel">
     <div class="panel-header">
-      <h2>Health</h2>
+      <h2>健康状态</h2>
       <span class="status-badge" id="health-status-badge">--</span>
     </div>
     <div class="panel-body" id="health-body">
-      <div class="loading">Checking...</div>
+      <div class="loading">正在检测...</div>
     </div>
   </section>
 
   <!-- Command Panel -->
   <section class="panel command-panel" id="command-panel">
     <div class="panel-header">
-      <h2>Command</h2>
+      <h2>命令</h2>
     </div>
     <div class="panel-body">
       <div class="command-form">
-        <input type="text" id="command-input" placeholder="e.g. run startup smoke test"
+        <input type="text" id="command-input" placeholder="例如：运行 startup smoke test"
                maxlength="2000" autocomplete="off">
         <select id="profile-select">
           <option value="safe_readonly">safe_readonly</option>
           <option value="local_write_with_approval">local_write_with_approval</option>
         </select>
-        <button class="btn btn-primary" id="command-submit-btn">Submit</button>
-        <button class="btn btn-sm" id="command-clear-btn">Clear</button>
+        <button class="btn btn-primary" id="command-submit-btn">提交</button>
+        <button class="btn btn-sm" id="command-clear-btn">清空</button>
       </div>
       <div class="command-error" id="command-error"></div>
       <div class="command-result" id="command-result"></div>
@@ -71,138 +132,138 @@
   <!-- Tasks Panel -->
   <section class="panel tasks-panel" id="tasks-panel">
     <div class="panel-header">
-      <h2>Tasks</h2>
-      <button class="btn btn-sm" id="tasks-refresh-btn">Refresh</button>
+      <h2>任务</h2>
+      <button class="btn btn-sm" id="tasks-refresh-btn">刷新</button>
     </div>
     <div class="panel-body" id="tasks-body">
-      <div class="loading">Loading...</div>
+      <div class="loading">正在加载...</div>
     </div>
   </section>
 
   <!-- Task Runs Panel -->
   <section class="panel runs-panel" id="runs-panel">
     <div class="panel-header">
-      <h2>Task Runs</h2>
-      <button class="btn btn-sm" id="runs-refresh-btn">Refresh</button>
+      <h2>任务运行</h2>
+      <button class="btn btn-sm" id="runs-refresh-btn">刷新</button>
     </div>
     <div class="panel-body" id="runs-body">
-      <div class="loading">Loading...</div>
+      <div class="loading">正在加载...</div>
     </div>
   </section>
 
   <!-- MAS Trace Panel -->
   <section class="panel trace-panel" id="trace-panel">
     <div class="panel-header">
-      <h2>MAS Trace</h2>
-      <button class="btn btn-sm" id="trace-refresh-btn">Refresh</button>
+      <h2>MAS 追踪</h2>
+      <button class="btn btn-sm" id="trace-refresh-btn">刷新</button>
     </div>
     <div class="panel-body" id="trace-body">
-      <div class="loading">Loading...</div>
+      <div class="loading">正在加载...</div>
     </div>
   </section>
 
   <!-- Memory Center Panel -->
   <section class="panel memory-panel" id="memory-panel">
     <div class="panel-header">
-      <h2>Memory Center</h2>
-      <button class="btn btn-sm" id="memory-refresh-btn">Refresh</button>
+      <h2>记忆中心</h2>
+      <button class="btn btn-sm" id="memory-refresh-btn">刷新</button>
     </div>
     <div class="panel-body" id="memory-body">
-      <div class="loading">Loading...</div>
+      <div class="loading">正在加载...</div>
     </div>
   </section>
 
   <!-- Research / Cognition Panel -->
   <section class="panel research-panel" id="research-panel">
     <div class="panel-header">
-      <h2>Research / Cognition</h2>
-      <button class="btn btn-sm" id="research-refresh-btn">Refresh</button>
+      <h2>研究 / 认知</h2>
+      <button class="btn btn-sm" id="research-refresh-btn">刷新</button>
     </div>
     <div class="panel-body" id="research-body">
-      <div class="loading">Loading...</div>
+      <div class="loading">正在加载...</div>
     </div>
   </section>
 
   <!-- Growth Center Panel -->
   <section class="panel growth-panel" id="growth-panel">
     <div class="panel-header">
-      <h2>Growth Center</h2>
-      <button class="btn btn-sm" id="growth-refresh-btn">Refresh</button>
+      <h2>成长中心</h2>
+      <button class="btn btn-sm" id="growth-refresh-btn">刷新</button>
     </div>
     <div class="panel-body" id="growth-body">
-      <div class="loading">Loading...</div>
+      <div class="loading">正在加载...</div>
     </div>
   </section>
 
   <!-- Career Center Panel -->
   <section class="panel career-panel" id="career-panel">
     <div class="panel-header">
-      <h2>Career Center</h2>
-      <button class="btn btn-sm" id="career-refresh-btn">Refresh</button>
+      <h2>职业中心</h2>
+      <button class="btn btn-sm" id="career-refresh-btn">刷新</button>
     </div>
     <div class="panel-body" id="career-body">
-      <div class="loading">Loading...</div>
+      <div class="loading">正在加载...</div>
     </div>
   </section>
 
   <section class="panel automation-panel" id="automation-panel">
     <div class="panel-header">
-      <h2>Automation</h2>
-      <button class="btn btn-sm" id="automation-refresh-btn">Refresh</button>
+      <h2>自动化</h2>
+      <button class="btn btn-sm" id="automation-refresh-btn">刷新</button>
     </div>
     <div class="panel-body" id="automation-body">
-      <div class="loading">Loading...</div>
+      <div class="loading">正在加载...</div>
     </div>
   </section>
 
   <section class="panel skills-panel" id="skills-panel">
     <div class="panel-header">
-      <h2>Skills</h2>
-      <button class="btn btn-sm" id="skills-refresh-btn">Refresh</button>
+      <h2>技能</h2>
+      <button class="btn btn-sm" id="skills-refresh-btn">刷新</button>
     </div>
     <div class="panel-body" id="skills-body">
-      <div class="loading">Loading...</div>
+      <div class="loading">正在加载...</div>
     </div>
   </section>
 
   <section class="panel knowledge-panel" id="knowledge-panel">
     <div class="panel-header">
-      <h2>Knowledge Graph</h2>
-      <button class="btn btn-sm" id="knowledge-refresh-btn">Refresh</button>
+      <h2>知识图谱</h2>
+      <button class="btn btn-sm" id="knowledge-refresh-btn">刷新</button>
     </div>
     <div class="panel-body" id="knowledge-body">
-      <div class="loading">Loading...</div>
+      <div class="loading">正在加载...</div>
     </div>
   </section>
 
   <section class="panel model-panel" id="model-panel">
     <div class="panel-header">
-      <h2>Model / Cost</h2>
-      <button class="btn btn-sm" id="model-refresh-btn">Refresh</button>
+      <h2>模型 / 成本</h2>
+      <button class="btn btn-sm" id="model-refresh-btn">刷新</button>
     </div>
     <div class="panel-body" id="model-body">
-      <div class="loading">Loading...</div>
+      <div class="loading">正在加载...</div>
     </div>
   </section>
 
   <section class="panel mcp-panel" id="mcp-panel">
     <div class="panel-header">
-      <h2>MCP / Tools</h2>
-      <button class="btn btn-sm" id="mcp-refresh-btn">Refresh</button>
+      <h2>MCP / 工具</h2>
+      <button class="btn btn-sm" id="mcp-refresh-btn">刷新</button>
     </div>
     <div class="panel-body" id="mcp-body">
-      <div class="loading">Loading...</div>
+      <div class="loading">正在加载...</div>
     </div>
   </section>
 
 </main>
 
 <footer class="footer">
-  <span>local only</span>
+  <span>仅本机运行</span>
   <span>|</span>
-  <span>no direct runtime access</span>
+  <span>不直接读取 runtime 文件</span>
   <span>|</span>
-  <span>no governance bypass</span>
+  <span>不绕过治理流程</span>
 </footer>
 
 <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>

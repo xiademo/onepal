@@ -15,8 +15,8 @@ $OutLog = Join-Path $RuntimeDir "onepal_api.out.log"
 $ErrLog = Join-Path $RuntimeDir "onepal_api.err.log"
 $ApiScript = Join-Path $ProjectRoot "scripts\api_server.py"
 $SmokeScript = Join-Path $ProjectRoot "scripts\run_startup_smoke_test.py"
-$DashboardPath = Join-Path $ProjectRoot "dashboard\index.html"
 $HealthUrl = "http://${BindHost}:$Port/health"
+$DashboardUrl = "http://${BindHost}:$Port/dashboard/"
 
 function Test-OnePalApi {
     try {
@@ -37,9 +37,14 @@ function Resolve-PythonExecutable {
 
     foreach ($candidate in @("py", "python")) {
         if (Get-Command $candidate -ErrorAction SilentlyContinue) {
-            & $candidate -c "import sys; print(sys.executable)" *> $null
-            if ($LASTEXITCODE -eq 0) {
-                return $candidate
+            try {
+                & $candidate -c "import sys; print(sys.executable)" 2>$null | Out-Null
+                if ($LASTEXITCODE -eq 0) {
+                    return $candidate
+                }
+            } catch {
+                # A Windows Python launcher can exist without an installed interpreter.
+                continue
             }
         }
     }
@@ -69,6 +74,11 @@ if (Test-OnePalApi) {
     Write-Host "OnePal API is already running at $HealthUrl"
 } else {
     Write-Host "Starting OnePal API at $HealthUrl"
+    # Windows can expose both PATH and Path in this shell. Normalize the
+    # process environment before Start-Process, which rejects duplicate keys.
+    $childPath = $env:Path
+    [Environment]::SetEnvironmentVariable("PATH", $null, "Process")
+    [Environment]::SetEnvironmentVariable("Path", $childPath, "Process")
     $process = Start-Process -FilePath $PythonExe `
         -ArgumentList @($ApiScript, "--host", $BindHost, "--port", "$Port") `
         -WorkingDirectory $ProjectRoot `
@@ -94,10 +104,10 @@ if (Test-OnePalApi) {
     }
 }
 
-Write-Host "Dashboard: $DashboardPath"
+Write-Host "Dashboard: $DashboardUrl"
 Write-Host "API:       $HealthUrl"
 Write-Host "Stop with: powershell -ExecutionPolicy Bypass -File scripts\stop_onepal.ps1"
 
 if (-not $NoBrowser) {
-    Start-Process -FilePath $DashboardPath
+    Start-Process -FilePath $DashboardUrl
 }

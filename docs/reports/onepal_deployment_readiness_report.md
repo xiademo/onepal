@@ -1,5 +1,7 @@
 # OnePal Deployment Readiness Report
 
+> 历史基线说明：本报告覆盖 Task 01.5 至 Task 05-B，不能用于判断当前工作台的部署状态。当前实际基线应以 `tests/`、最新 task reports、schema registry 和本地 smoke 结果为准；Dashboard 已扩展为 15 个面板，并由 `/dashboard/` 同源托管。
+
 Generated: 2026-05-25T01:45:00Z
 Audit Type: Full Functional Verification + Deployment Readiness
 Scope: Task 01.5 through Task 05-B

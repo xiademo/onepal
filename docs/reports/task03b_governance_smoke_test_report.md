@@ -1,6 +1,6 @@
 # Task 03-B Governance Smoke Test Report
 
-Generated: 2026-06-15T15:19:18.551535+00:00
+Generated: 2026-07-11T07:46:10.601223+00:00
 
 ## 1. Summary
 
@@ -92,7 +92,7 @@ Report: D:\git\ai\workspaces\onepal\docs\reports\task02_schema_validation_report
 
 ## 4. JSONL Parse Audit
 
-Total JSONL lines: 52, bad: 0
+Total JSONL lines: 92, bad: 0
 
 ## 5. Git Check-Ignore
 

@@ -1,12 +1,12 @@
 /* OnePal Dashboard App - Task 07-B
- * API client, state management, and DOM rendering for 14 panels.
+ * API client, state management, and DOM rendering for 15 panels.
  * Uses fetch() exclusively. Zero external dependencies. Zero CDN.
  * Avoids eval / new Function / direct file access.
  */
 (function() {
 'use strict';
 
-var API_BASE = 'http://127.0.0.1:18790';
+var API_BASE = window.location.origin;
 var REFRESH_MS = 5000;
 var refreshTimer = null;
 
@@ -15,6 +15,110 @@ var apiBadge = document.getElementById('api-badge');
 var apiUrlEl = document.getElementById('api-url');
 var refreshAllBtn = document.getElementById('refresh-all-btn');
 var toastRegion = document.getElementById('toast-region');
+var currentViewEl = document.getElementById('current-view');
+
+function activatePanel(panelId, updateHash) {
+  var panels = document.querySelectorAll('main .panel');
+  var chips = document.querySelectorAll('.nav-chip');
+  var target = document.getElementById(panelId);
+  if (!target) return;
+
+  panels.forEach(function(panel) {
+    var active = panel.id === panelId;
+    panel.classList.toggle('is-active', active);
+    panel.setAttribute('aria-hidden', active ? 'false' : 'true');
+  });
+  target.classList.remove('panel-enter');
+  void target.offsetWidth;
+  target.classList.add('panel-enter');
+  window.setTimeout(function() { target.classList.remove('panel-enter'); }, 520);
+  chips.forEach(function(chip) {
+    var active = chip.getAttribute('href') === '#' + panelId;
+    chip.classList.toggle('is-active', active);
+    if (active) chip.setAttribute('aria-current', 'page');
+    else chip.removeAttribute('aria-current');
+    if (active && currentViewEl) currentViewEl.textContent = chip.textContent;
+  });
+  if (updateHash) window.history.replaceState(null, '', '#' + panelId);
+}
+
+function initializePanelNavigation() {
+  document.querySelectorAll('.nav-chip').forEach(function(chip) {
+    chip.addEventListener('click', function(event) {
+      event.preventDefault();
+      activatePanel(chip.getAttribute('href').slice(1), true);
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    });
+  });
+  window.addEventListener('hashchange', function() {
+    activatePanel(window.location.hash.slice(1) || 'setup-panel', false);
+  });
+  activatePanel(window.location.hash.slice(1) || 'setup-panel', false);
+}
+
+function initializeMotionSystem() {
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var finePointer = window.matchMedia('(pointer: fine)');
+
+  document.querySelectorAll('.panel').forEach(function(panel) {
+    var frame = null;
+    panel.addEventListener('pointermove', function(event) {
+      if (reduceMotion.matches || !finePointer.matches) return;
+      if (frame) window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(function() {
+        var rect = panel.getBoundingClientRect();
+        panel.style.setProperty('--pointer-x', (event.clientX - rect.left) + 'px');
+        panel.style.setProperty('--pointer-y', (event.clientY - rect.top) + 'px');
+        panel.classList.add('has-pointer');
+      });
+    });
+    panel.addEventListener('pointerleave', function() {
+      panel.classList.remove('has-pointer');
+    });
+  });
+
+  document.addEventListener('pointerdown', function(event) {
+    if (reduceMotion.matches) return;
+    var target = event.target;
+    if (!target || !target.closest) return;
+    var button = target.closest('.btn');
+    if (!button) return;
+    var rect = button.getBoundingClientRect();
+    button.style.setProperty('--ripple-x', (event.clientX - rect.left) + 'px');
+    button.style.setProperty('--ripple-y', (event.clientY - rect.top) + 'px');
+    button.classList.remove('is-rippling');
+    void button.offsetWidth;
+    button.classList.add('is-rippling');
+    window.setTimeout(function() { button.classList.remove('is-rippling'); }, 620);
+  });
+}
+
+var TEXT = {
+  'Loading...': '正在加载...', 'No data': '暂无数据', 'Error loading data': '加载失败', 'Retry': '重试',
+  'Action failed': '操作失败', 'Create': '创建', 'Created: ': '已创建：', 'Error: ': '错误：',
+  'Content required': '请输入内容', 'Title required': '请输入标题', 'Routes': '模型路由', 'Cost Events': '成本事件',
+  'Create Route': '创建路由', 'Task type': '任务类型', 'No model routes': '暂无模型路由', 'No cost events': '暂无成本事件',
+  'ID': '编号', 'Task': '任务', 'Model': '模型', 'Status': '状态', 'Enabled': '启用', 'Disabled': '未启用',
+  'enabled': '已启用', 'disabled': '未启用', 'yes': '是', 'no': '否', 'required': '需要审批', 'not required': '无需审批',
+  'Quality Reviews': '质量评审', 'Conflicts': '冲突', 'Change Requests': '变更请求', 'Snapshots': '快照',
+  'Create Workflow': '创建工作流', 'Workflow name': '工作流名称', 'Workflows': '工作流', 'Runs': '运行记录',
+  'Create Candidate': '创建候选项', 'Create Source': '创建来源', 'Create Asset': '创建职业资产',
+  'Create Skill Candidate': '创建技能候选', 'Skill name': '技能名称', 'Candidates': '候选项', 'Reviews': '评审记录',
+  'Create Node': '创建知识节点', 'Node label': '节点名称', 'Nodes': '节点', 'Edges': '边', 'Boundaries': '边界候选',
+  'State': '状态快照', 'MCP Profiles': 'MCP 配置', 'Tool Policies': '工具策略', 'Create MCP Profile': '创建 MCP 配置',
+  'MCP profile name': 'MCP 配置名称', 'Memory content...': '记忆候选内容', 'Source content...': '来源内容',
+  'Goal title': '目标标题', 'Reason': '原因', 'Asset title': '资产标题', 'Evidence refs, comma-separated': '证据引用，使用逗号分隔',
+  'Auto Submit': '自动提交', 'LiteLLM': 'LiteLLM', 'Sandbox': '沙箱', 'Enabled After': '评审后启用', 'RAG': 'RAG',
+  'Write': '写入', 'Approval': '审批', 'Outputs': '输出', 'Trust': '信任等级', 'Risk': '风险',
+  'Source': '来源', 'Evidence': '证据', 'Summary': '摘要', 'Type': '类型', 'Name': '名称',
+  'No JD evaluations': '暂无 JD 评估', 'No MCP profiles': '暂无 MCP 配置', 'No workflows': '暂无工作流',
+  'No workflow runs': '暂无工作流运行记录', 'No skill candidates': '暂无技能候选项', 'No nodes': '暂无节点',
+  'No edges': '暂无边', 'No boundaries': '暂无边界候选', 'No state snapshots': '暂无状态快照'
+};
+
+function zh(value) {
+  return Object.prototype.hasOwnProperty.call(TEXT, value) ? TEXT[value] : value;
+}
 
 // ─── State ───
 var state = {
@@ -57,7 +161,7 @@ function apiPost(path, body) {
 function el(tag, cls, text) {
   var e = document.createElement(tag);
   if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;
+  if (text !== undefined) e.textContent = zh(text);
   return e;
 }
 
@@ -69,19 +173,19 @@ function badge(text, cls) {
 
 function showLoading(container) {
   container.innerHTML = '';
-  container.appendChild(el('div', 'loading', 'Loading...'));
+  container.appendChild(el('div', 'loading', '正在加载...'));
 }
 
 function showEmpty(container, msg) {
   container.innerHTML = '';
-  container.appendChild(el('div', 'empty', msg || 'No data'));
+  container.appendChild(el('div', 'empty', msg || '暂无数据'));
 }
 
 function showError(container, msg, retryFn) {
   container.innerHTML = '';
-  var div = el('div', 'error-state', msg || 'Error loading data');
+  var div = el('div', 'error-state', msg || '加载失败');
   if (retryFn) {
-    var btn = el('button', 'btn btn-sm retry-btn', 'Retry');
+    var btn = el('button', 'btn btn-sm retry-btn', '重试');
     btn.onclick = retryFn;
     div.appendChild(btn);
   }
@@ -91,7 +195,7 @@ function showError(container, msg, retryFn) {
 function showToast(message, type) {
   if (!toastRegion) return;
   var cls = 'toast toast-' + (type || 'info');
-  var toast = el('div', cls, message || 'Action failed');
+  var toast = el('div', cls, message || '操作失败');
   toastRegion.appendChild(toast);
   setTimeout(function() {
     if (toast.parentNode) toast.parentNode.removeChild(toast);
@@ -99,7 +203,7 @@ function showToast(message, type) {
 }
 
 function handleActionError(error) {
-  showToast(error && error.message ? error.message : 'Action failed', 'error');
+  showToast(error && error.message ? error.message : '操作失败', 'error');
 }
 
 function buildTable(columns, rows) {
@@ -393,16 +497,98 @@ function refreshTrace() {
   }).finally(function() { renderTrace(); });
 }
 
+// ─── Local dashboard and remote provider setup ───
+var localDashboardUrl = document.getElementById('local-dashboard-url');
+var localApiResult = document.getElementById('local-api-result');
+var testLocalApiBtn = document.getElementById('test-local-api-btn');
+var providerForm = document.getElementById('provider-config-form');
+var providerBaseUrl = document.getElementById('provider-base-url');
+var providerModel = document.getElementById('provider-model');
+var providerApiKey = document.getElementById('provider-api-key');
+var providerInputPrice = document.getElementById('provider-input-price');
+var providerOutputPrice = document.getElementById('provider-output-price');
+var providerBudget = document.getElementById('provider-budget');
+var providerResult = document.getElementById('provider-result');
+var testProviderBtn = document.getElementById('test-provider-btn');
+
+function providerPayload() {
+  return {
+    base_url: providerBaseUrl.value.trim(),
+    model: providerModel.value.trim(),
+    api_key: providerApiKey.value,
+    input_price_per_million: providerInputPrice.value,
+    output_price_per_million: providerOutputPrice.value,
+    monthly_budget_usd: providerBudget.value
+  };
+}
+
+function renderProviderStatus(data) {
+  if (!providerResult) return;
+  if (!data || !data.configured) {
+    providerResult.textContent = '未配置远程模型。保存配置不会发起远程请求。';
+    return;
+  }
+  providerBaseUrl.value = data.base_url || '';
+  providerModel.value = data.model || '';
+  providerInputPrice.value = data.input_price_per_million === null ? '' : (data.input_price_per_million || '');
+  providerOutputPrice.value = data.output_price_per_million === null ? '' : (data.output_price_per_million || '');
+  providerBudget.value = data.monthly_budget_usd === null ? '' : (data.monthly_budget_usd || '');
+  providerApiKey.value = '';
+  providerResult.textContent = '已配置 ' + (data.model || '远程模型') + '。API Key 已保存但不会显示；留空不会修改现有密钥。';
+}
+
+function refreshProviderStatus() {
+  return apiGet('/model/provider').then(function(resp) {
+    renderProviderStatus(resp.data || {});
+  }).catch(function(error) {
+    if (providerResult) providerResult.textContent = '无法读取远程模型配置：' + error.message;
+  });
+}
+
+function testLocalApi() {
+  if (localApiResult) localApiResult.textContent = '正在检测本地服务...';
+  apiGet('/health').then(function(resp) {
+    if (localApiResult) localApiResult.textContent = resp.ok ? '本地服务在线，可使用工作台。' : '本地服务返回了未就绪状态。';
+  }).catch(function(error) {
+    if (localApiResult) localApiResult.textContent = '本地服务不可用：' + error.message;
+  });
+}
+
+if (localDashboardUrl) localDashboardUrl.textContent = window.location.href;
+if (testLocalApiBtn) testLocalApiBtn.addEventListener('click', testLocalApi);
+if (providerForm) providerForm.addEventListener('submit', function(event) {
+  event.preventDefault();
+  if (!providerApiKey.value) {
+    providerResult.textContent = '首次保存必须填写 API Key。已配置后请重新填写完整表单以更新配置。';
+    return;
+  }
+  providerResult.textContent = '正在保存本机私有配置...';
+  apiPost('/model/provider', providerPayload()).then(function(resp) {
+    renderProviderStatus(resp.data || {});
+    showToast('远程模型配置已保存到本机私有目录。', 'success');
+  }).catch(function(error) {
+    providerResult.textContent = '保存失败：' + error.message;
+  });
+});
+if (testProviderBtn) testProviderBtn.addEventListener('click', function() {
+  providerResult.textContent = '正在检测远程模型连接...';
+  apiPost('/model/provider/test', {}).then(function(resp) {
+    providerResult.textContent = '远程模型连接成功。可见模型数：' + (resp.data.model_count === null ? '未提供' : resp.data.model_count) + '。';
+  }).catch(function(error) {
+    providerResult.textContent = '连接失败：' + error.message;
+  });
+});
+
 // ─── API Status Check ───
 function updateApiBadge() {
   if (state.health.status === 'error') {
-    apiBadge.textContent = 'OFF';
+    apiBadge.textContent = '离线';
     apiBadge.style.background = 'var(--red)';
   } else if (state.health.status === 'loading') {
-    apiBadge.textContent = '...';
+    apiBadge.textContent = '检测中';
     apiBadge.style.background = 'var(--yellow)';
   } else {
-    apiBadge.textContent = 'API';
+    apiBadge.textContent = '在线';
     apiBadge.style.background = 'var(--green)';
   }
   apiUrlEl.textContent = API_BASE;
@@ -420,11 +606,16 @@ function refreshAll() {
   refreshSkills();
   refreshKnowledge();
   refreshModelCost();
+  refreshProviderStatus();
   refreshMcpTools();
   setTimeout(updateApiBadge, 1000);
 }
 
-refreshAllBtn.addEventListener('click', refreshAll);
+refreshAllBtn.addEventListener('click', function() {
+  refreshAllBtn.classList.add('is-refreshing');
+  refreshAll();
+  window.setTimeout(function() { refreshAllBtn.classList.remove('is-refreshing'); }, 560);
+});
 
 // ─── Auto-refresh ───
 function startAutoRefresh() {
@@ -475,7 +666,7 @@ function renderMemory(body) {
   var formDiv = el('div', 'memory-form');
   formDiv.appendChild(el('h3', '', 'Create Candidate'));
   var input = el('input');
-  input.type = 'text'; input.id = 'mem-content'; input.placeholder = 'Memory content...'; input.maxLength = 4000;
+  input.type = 'text'; input.id = 'mem-content'; input.placeholder = zh('Memory content...'); input.maxLength = 4000;
   formDiv.appendChild(input);
   var typeSel = el('select'); typeSel.id = 'mem-type';
   ['project_decision','user_preference','system_rule','workflow_preference'].forEach(function(t) {
@@ -652,7 +843,7 @@ function renderResearch(body) {
   var srcs = state.research.sources.data || [], pkts = state.research.packets.data || [], cards = state.research.cards.data || [];
   var formDiv = el('div', 'memory-form');
   formDiv.appendChild(el('h3','','Create Source'));
-  var inp = el('input'); inp.type='text'; inp.id='rsrc-content'; inp.placeholder='Source content...'; inp.maxLength=2000; formDiv.appendChild(inp);
+  var inp = el('input'); inp.type='text'; inp.id='rsrc-content'; inp.placeholder=zh('Source content...'); inp.maxLength=2000; formDiv.appendChild(inp);
   var tsel = el('select'); tsel.id='rsrc-type'; ['manual_text','article_summary','paper_summary'].forEach(function(t){var o=el('option');o.value=t;o.textContent=t;tsel.appendChild(o)}); formDiv.appendChild(tsel);
   var btn = el('button','btn btn-primary','Create'); btn.onclick=function(){var ct=document.getElementById('rsrc-content').value.trim();if(!ct){showToast('Content required','error');return}apiPost('/research/sources',{title:'Research Source',content_summary:ct,source_type:document.getElementById('rsrc-type').value}).then(function(){refreshResearch()}).catch(handleActionError)}; formDiv.appendChild(btn);
   c.appendChild(formDiv);
@@ -721,7 +912,7 @@ function renderGrowth(body) {
 
   var formDiv = el('div', 'memory-form');
   formDiv.appendChild(el('h3', '', 'Create Candidate'));
-  var title = el('input'); title.type = 'text'; title.id = 'growth-title'; title.placeholder = 'Goal title'; title.maxLength = 2000; formDiv.appendChild(title);
+  var title = el('input'); title.type = 'text'; title.id = 'growth-title'; title.placeholder = zh('Goal title'); title.maxLength = 2000; formDiv.appendChild(title);
   var area = el('select'); area.id = 'growth-area';
   ['ai_engineering','data_analysis','career','research','communication','productivity','personal_project','other'].forEach(function(v){var o=el('option');o.value=v;o.textContent=v;area.appendChild(o)});
   formDiv.appendChild(area);
@@ -817,7 +1008,7 @@ function renderCareer(body) {
 
   var formDiv = el('div', 'memory-form');
   formDiv.appendChild(el('h3', '', 'Create Asset'));
-  var title = el('input'); title.type = 'text'; title.id = 'career-asset-title'; title.placeholder = 'Asset title'; title.maxLength = 2000; formDiv.appendChild(title);
+  var title = el('input'); title.type = 'text'; title.id = 'career-asset-title'; title.placeholder = zh('Asset title'); title.maxLength = 2000; formDiv.appendChild(title);
   var type = el('select'); type.id = 'career-asset-type';
   ['project','experience','education','certificate','portfolio','skill','other'].forEach(function(v){var o=el('option');o.value=v;o.textContent=v;type.appendChild(o)});
   formDiv.appendChild(type);
@@ -895,7 +1086,7 @@ function renderAutomation(body) {
   c.innerHTML = '';
   var form = el('div', 'memory-form');
   form.appendChild(el('h3', '', 'Create Workflow'));
-  var name = el('input'); name.type='text'; name.id='automation-name'; name.placeholder='Workflow name'; form.appendChild(name);
+  var name = el('input'); name.type='text'; name.id='automation-name'; name.placeholder=zh('Workflow name'); form.appendChild(name);
   var create = el('button','btn btn-primary','Create');
   create.onclick=function(){var n=document.getElementById('automation-name').value.trim(); if(!n){return} apiPost('/automation/workflows',{name:n,action_refs:['read_file']}).then(function(){refreshAutomation()}).catch(handleActionError)};
   form.appendChild(create); c.appendChild(form);
@@ -919,7 +1110,7 @@ function renderSkills(body) {
   c.innerHTML = '';
   var form = el('div', 'memory-form');
   form.appendChild(el('h3', '', 'Create Skill Candidate'));
-  var name = el('input'); name.type='text'; name.id='skill-name'; name.placeholder='Skill name'; form.appendChild(name);
+  var name = el('input'); name.type='text'; name.id='skill-name'; name.placeholder=zh('Skill name'); form.appendChild(name);
   var create = el('button','btn btn-primary','Create');
   create.onclick=function(){var n=document.getElementById('skill-name').value.trim(); if(!n){return} apiPost('/skills/candidates',{name:n}).then(function(){refreshSkills()}).catch(handleActionError)};
   form.appendChild(create); c.appendChild(form);
@@ -943,7 +1134,7 @@ function renderKnowledge(body) {
   c.innerHTML = '';
   var form = el('div', 'memory-form');
   form.appendChild(el('h3', '', 'Create Node'));
-  var label = el('input'); label.type='text'; label.id='knowledge-label'; label.placeholder='Node label'; form.appendChild(label);
+  var label = el('input'); label.type='text'; label.id='knowledge-label'; label.placeholder=zh('Node label'); form.appendChild(label);
   var create = el('button','btn btn-primary','Create');
   create.onclick=function(){var n=document.getElementById('knowledge-label').value.trim(); if(!n){return} apiPost('/knowledge/nodes',{label:n}).then(function(){refreshKnowledge()}).catch(handleActionError)};
   form.appendChild(create); c.appendChild(form);
@@ -969,14 +1160,40 @@ function renderModelCost(body) {
   if (state.modelCost.routes.status === 'error') { showError(c, state.modelCost.routes.error, refreshModelCost); return; }
   var routes = state.modelCost.routes.data || [], costs = state.modelCost.costs.data || [];
   c.innerHTML = '';
+  var assistant = el('section', 'assistant-form');
+  assistant.appendChild(el('h3', '', '提案助手'));
+  assistant.appendChild(el('p', 'setup-copy', '仅生成可供审核的中文建议。模型无法执行命令、写入长期记忆、启用工具或提交外部操作。'));
+  var prompt = el('textarea'); prompt.id = 'assistant-prompt'; prompt.maxLength = 4000; prompt.placeholder = '描述你需要分析或规划的事项，最多 4000 个字符。'; assistant.appendChild(prompt);
+  var confirm = el('label', 'assistant-confirm');
+  var check = el('input'); check.type = 'checkbox'; check.id = 'assistant-remote-confirm'; confirm.appendChild(check);
+  confirm.appendChild(el('span', '', '我确认本次内容将发送到已配置的远程模型服务。'));
+  assistant.appendChild(confirm);
+  var submit = el('button', 'btn btn-primary', '生成提案'); submit.type = 'button';
+  var result = el('div', 'assistant-result', '尚未生成提案。输出只在当前页面显示，需由你手动录入 OnePal 的受治理流程。'); result.id = 'assistant-result';
+  submit.onclick = function() {
+    var text = prompt.value.trim();
+    if (!text) { result.textContent = '请输入需要生成建议的内容。'; return; }
+    if (!check.checked) { result.textContent = '请先确认本次内容将发送到远程模型服务。'; return; }
+    submit.disabled = true;
+    result.textContent = '正在请求远程模型生成提案...';
+    apiPost('/assistant/proposals', {prompt: text}).then(function(resp) {
+      var data = resp.data || {};
+      var priceNote = data.pricing_configured ? ('估算成本：$' + data.estimated_cost_usd) : '未配置价格，成本按 $0 记录。';
+      result.textContent = (data.proposal_text || '远程模型未返回建议。') + '\n\n' + priceNote + '\n该输出未写入任务、记忆或外部系统。';
+      refreshModelCost();
+    }).catch(function(error) {
+      result.textContent = '无法生成提案：' + error.message;
+    }).finally(function() { submit.disabled = false; });
+  };
+  assistant.appendChild(submit); assistant.appendChild(result); c.appendChild(assistant);
   var form = el('div', 'memory-form');
-  form.appendChild(el('h3', '', 'Create Route'));
-  var task = el('input'); task.type='text'; task.id='model-task-type'; task.placeholder='Task type'; form.appendChild(task);
-  var create = el('button','btn btn-primary','Create');
+  form.appendChild(el('h3', '', '创建路由'));
+  var task = el('input'); task.type='text'; task.id='model-task-type'; task.placeholder='任务类型'; form.appendChild(task);
+  var create = el('button','btn btn-primary','创建');
   create.onclick=function(){var t=document.getElementById('model-task-type').value.trim(); if(!t){return} apiPost('/model/routes',{task_type:t}).then(function(){refreshModelCost()}).catch(handleActionError)};
   form.appendChild(create); c.appendChild(form);
-  appendGrowthTable(c, 'Routes', ['ID','Task','Model','LiteLLM','Status'], routes.slice(0,10).map(function(r){return [idCell(r.router_id), r.task_type||'?', r.default_model||'?', r.litellm_enabled?'enabled':'disabled', badge(r.status||'?','status-'+(r.status||''))]}), 'No model routes');
-  appendGrowthTable(c, 'Cost Events', ['ID','Task','Model','USD'], costs.slice(0,10).map(function(e){return [idCell(e.cost_event_id), shortText(e.task_ref,24), e.model||'?', e.estimated_cost_usd]}), 'No cost events');
+  appendGrowthTable(c, '模型路由', ['编号','任务','模型','LiteLLM','状态'], routes.slice(0,10).map(function(r){return [idCell(r.router_id), r.task_type||'?', r.default_model||'?', r.litellm_enabled?'已启用':'未启用', badge(r.status||'?','status-'+(r.status||''))]}), '暂无模型路由');
+  appendGrowthTable(c, '成本事件', ['编号','任务','模型','USD'], costs.slice(0,10).map(function(e){return [idCell(e.cost_event_id), shortText(e.task_ref,24), e.model||'?', e.estimated_cost_usd]}), '暂无成本事件');
 }
 
 function refreshModelCost() {
@@ -995,7 +1212,7 @@ function renderMcpTools(body) {
   c.innerHTML = '';
   var form = el('div', 'memory-form');
   form.appendChild(el('h3', '', 'Create MCP Profile'));
-  var name = el('input'); name.type='text'; name.id='mcp-name'; name.placeholder='MCP profile name'; form.appendChild(name);
+  var name = el('input'); name.type='text'; name.id='mcp-name'; name.placeholder=zh('MCP profile name'); form.appendChild(name);
   var create = el('button','btn btn-primary','Create');
   create.onclick=function(){var n=document.getElementById('mcp-name').value.trim(); if(!n){return} apiPost('/mcp/profiles',{name:n}).then(function(){refreshMcpTools()}).catch(handleActionError)};
   form.appendChild(create); c.appendChild(form);
@@ -1029,6 +1246,8 @@ refreshModelCost();
 refreshMcpTools();
 startAutoRefresh();
 updateApiBadge();
+initializePanelNavigation();
+initializeMotionSystem();
 
 // Periodically update API badge
 setInterval(updateApiBadge, REFRESH_MS);

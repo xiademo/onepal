@@ -204,7 +204,7 @@ def test_T16(tmpdir):
 # --- Integration Test: Real HTTP Server ---
 
 def test_T17():
-    """T17: Real HTTP server starts, handles /health and CORS, stops."""
+    """T17: Local server serves health and the fixed dashboard assets only."""
     print("\n--- T17: Real HTTP server integration ---")
     from scripts.api_server import create_server, OnePalHandler
     import tempfile
@@ -236,14 +236,20 @@ def test_T17():
         ok = body.get("ok") and body["data"].get("status") == "ready"
         result = test("T17: real HTTP server /health returns ready", ok, str(body.get("data", {}).get("status")))
 
-        cors_ok = cors == "*"
-        test("T17b: real HTTP server sends CORS header", cors_ok, f"cors={cors}")
+        cors_ok = cors is None
+        test("T17b: real HTTP server does not allow cross-origin API reads", cors_ok, f"cors={cors}")
 
         options_req = urllib.request.Request(url, method="OPTIONS")
         options_resp = urllib.request.urlopen(options_req, timeout=5)
-        options_ok = options_resp.status == 204 and options_resp.headers.get("Access-Control-Allow-Methods")
-        test("T17c: real HTTP server handles OPTIONS", options_ok, f"status={options_resp.status}")
-        return result and cors_ok and options_ok
+        options_ok = options_resp.status == 204 and not options_resp.headers.get("Access-Control-Allow-Origin")
+        test("T17c: real HTTP server rejects CORS preflight grants", options_ok, f"status={options_resp.status}")
+
+        dashboard = urllib.request.urlopen(f"http://{host}:{port}/dashboard/", timeout=5)
+        dashboard_body = dashboard.read().decode("utf-8")
+        dashboard_ok = (dashboard.status == 200 and "OnePal 本地工作台" in dashboard_body and
+                        "default-src 'self'" in dashboard.headers.get("Content-Security-Policy", ""))
+        test("T17d: dashboard is served locally with restrictive CSP", dashboard_ok)
+        return result and cors_ok and options_ok and dashboard_ok
     except Exception as e:
         return test("T17: real HTTP server integration", False, str(e))
     finally:

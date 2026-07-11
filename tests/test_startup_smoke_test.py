@@ -140,6 +140,15 @@ def test_T11():
     return test("T11: codegraph cache excluded", is_secret_scan_excluded(path))
 
 
+def test_T12():
+    """T12: private local model configuration is excluded from secret scan."""
+    print("\n--- T12: private model configuration excluded ---")
+    sys.path.insert(0, str(PROJECT_ROOT))
+    from scripts.run_startup_smoke_test import is_secret_scan_excluded
+    path = PROJECT_ROOT / "runtime-data-private" / "model_provider.json"
+    return test("T12: private model configuration excluded", is_secret_scan_excluded(path))
+
+
 # T9: check_runtime_lock.py runs
 def test_T9():
     print("\n--- T9: check_runtime_lock.py runs ---")
@@ -187,6 +196,7 @@ def main():
     test_T9()
     test_T10()
     test_T11()
+    test_T12()
 
     print("\n" + "=" * 60)
     total = passed + failed

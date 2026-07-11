@@ -21,8 +21,28 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
+try:
+    from scripts.model_provider import (
+        DEFAULT_CONFIG_PATH,
+        ProviderError,
+        create_proposal,
+        provider_status,
+        save_provider_config,
+        test_provider_connection,
+    )
+except ModuleNotFoundError:
+    from model_provider import (
+        DEFAULT_CONFIG_PATH,
+        ProviderError,
+        create_proposal,
+        provider_status,
+        save_provider_config,
+        test_provider_connection,
+    )
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 PY = sys.executable
+DASHBOARD_DIR = PROJECT_ROOT / "dashboard"
 
 # Allowed read paths (whitelist — no arbitrary file access)
 HEALTH_PATH = PROJECT_ROOT / "runtime" / "health_status.json"
@@ -88,11 +108,14 @@ MAX_LIMIT = 100
 MAX_COMMAND_LENGTH = 2000
 MAX_MEMORY_CONTENT = 4000
 MAX_GROWTH_CONTENT = 2000
+MAX_REQUEST_BODY_BYTES = 64 * 1024
 
 ALLOWED_HOSTS = {"127.0.0.1", "localhost"}
-CORS_ALLOW_ORIGIN = "*"
-CORS_ALLOW_METHODS = "GET, POST, OPTIONS"
-CORS_ALLOW_HEADERS = "Content-Type"
+STATIC_DASHBOARD_FILES = {
+    "/dashboard/": ("index.html", "text/html; charset=utf-8"),
+    "/dashboard/style.css": ("style.css", "text/css; charset=utf-8"),
+    "/dashboard/app.js": ("app.js", "application/javascript; charset=utf-8"),
+}
 
 
 def now_iso():
@@ -798,7 +821,13 @@ def _status_for(resp):
     if resp.get("ok"):
         return 200
     code = (resp.get("error") or {}).get("code")
-    return 404 if code in {"CANDIDATE_NOT_FOUND", "GOAL_NOT_FOUND", "TASK_NOT_FOUND", "NOT_FOUND"} else 400
+    if code in {"CANDIDATE_NOT_FOUND", "GOAL_NOT_FOUND", "TASK_NOT_FOUND", "NOT_FOUND"}:
+        return 404
+    if code == "BUDGET_EXCEEDED":
+        return 429
+    if code in {"PROVIDER_UNREACHABLE", "PROVIDER_TIMEOUT", "PROVIDER_HTTP_ERROR", "INVALID_PROVIDER_RESPONSE"}:
+        return 502
+    return 400
 
 
 def handle_growth_candidates_post(body, script_path, candidates_path=GROWTH_CANDIDATES_PATH, audit_path=GROWTH_AUDIT_PATH):
@@ -1436,6 +1465,75 @@ def handle_cost_events_post(body, script_path, paths=None):
     return build_response(True, data={"cost_event_id": event.get("cost_event_id"), "estimated_cost_usd": event.get("estimated_cost_usd")})
 
 
+def _provider_error_response(error):
+    return build_response(False, error={"code": error.code, "message": error.message})
+
+
+def _current_month_cost(path):
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    total = 0.0
+    if not path.exists():
+        return total
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if str(event.get("created_at", "")).startswith(current_month):
+                    total += float(event.get("estimated_cost_usd") or 0)
+    except OSError:
+        return total
+    return round(total, 8)
+
+
+def handle_model_provider_get(config_path):
+    return build_response(True, data=provider_status(config_path))
+
+
+def handle_model_provider_post(body, config_path):
+    try:
+        config = save_provider_config(body, config_path)
+    except ProviderError as error:
+        return _provider_error_response(error)
+    return build_response(True, data={
+        "configured": True,
+        "has_api_key": bool(config.get("api_key")),
+        "base_url": config["base_url"],
+        "model": config["model"],
+        "input_price_per_million": config["input_price_per_million"],
+        "output_price_per_million": config["output_price_per_million"],
+        "monthly_budget_usd": config["monthly_budget_usd"],
+    })
+
+
+def handle_model_provider_test(config_path):
+    try:
+        data = test_provider_connection(config_path)
+    except ProviderError as error:
+        return _provider_error_response(error)
+    return build_response(True, data=data)
+
+
+def handle_assistant_proposal(body, config_path, cost_events_path, readiness_script, paths):
+    try:
+        proposal = create_proposal((body or {}).get("prompt", ""), _current_month_cost(cost_events_path), config_path)
+    except ProviderError as error:
+        return _provider_error_response(error)
+
+    cost_response = handle_cost_events_post({
+        "task_ref": proposal["request_id"],
+        "model": proposal["model"],
+        "estimated_cost_usd": proposal["estimated_cost_usd"],
+        "budget_class": "medium",
+    }, readiness_script, paths)
+    proposal["cost_event_recorded"] = bool(cost_response.get("ok"))
+    if cost_response.get("ok"):
+        proposal["cost_event_id"] = cost_response.get("data", {}).get("cost_event_id")
+    return build_response(True, data=proposal)
+
+
 def handle_mcp_profiles_post(body, script_path, paths=None):
     name = (body.get("name") or "").strip()
     if not name:
@@ -1524,6 +1622,7 @@ class OnePalHandler(BaseHTTPRequestHandler):
     knowledge_state_path = KNOWLEDGE_STATE_PATH
     model_routes_path = MODEL_ROUTES_PATH
     cost_events_path = COST_EVENTS_PATH
+    model_provider_path = DEFAULT_CONFIG_PATH
     mcp_profiles_path = MCP_PROFILES_PATH
     tool_policies_path = TOOL_POLICIES_PATH
     readiness_audit_path = READINESS_AUDIT_PATH
@@ -1532,21 +1631,44 @@ class OnePalHandler(BaseHTTPRequestHandler):
         body = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", CORS_ALLOW_ORIGIN)
-        self.send_header("Access-Control-Allow-Methods", CORS_ALLOW_METHODS)
-        self.send_header("Access-Control-Allow-Headers", CORS_ALLOW_HEADERS)
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
     def do_OPTIONS(self):
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", CORS_ALLOW_ORIGIN)
-        self.send_header("Access-Control-Allow-Methods", CORS_ALLOW_METHODS)
-        self.send_header("Access-Control-Allow-Headers", CORS_ALLOW_HEADERS)
         self.send_header("Content-Length", "0")
         self.end_headers()
+
+    def _send_dashboard_asset(self, path):
+        if path == "/dashboard":
+            self.send_response(302)
+            self.send_header("Location", "/dashboard/")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return True
+        item = STATIC_DASHBOARD_FILES.get(path)
+        if not item:
+            return False
+        filename, content_type = item
+        asset_path = DASHBOARD_DIR / filename
+        try:
+            body = asset_path.read_bytes()
+        except OSError:
+            self._send_json(404, build_response(False, error={"code": "NOT_FOUND", "message": "dashboard asset not found"}))
+            return True
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Security-Policy", "default-src 'self'; connect-src 'self'; style-src 'self'; script-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+        return True
 
     def _parse_query_limit(self):
         """Extract ?limit=N from query string."""
@@ -1564,6 +1686,8 @@ class OnePalHandler(BaseHTTPRequestHandler):
         limit, _ = self._parse_query_limit()
 
         try:
+            if self._send_dashboard_asset(path):
+                return
             if path == "/health":
                 resp = handle_health(self.health_path)
                 self._send_json(200, resp)
@@ -1703,6 +1827,9 @@ class OnePalHandler(BaseHTTPRequestHandler):
             elif path == "/model/cost-events":
                 resp = handle_cost_events_get(self.cost_events_path, limit)
                 self._send_json(200, resp)
+            elif path == "/model/provider":
+                resp = handle_model_provider_get(self.model_provider_path)
+                self._send_json(_status_for(resp), resp)
             elif path == "/mcp/profiles":
                 resp = handle_mcp_profiles_get(self.mcp_profiles_path, limit)
                 self._send_json(200, resp)
@@ -1725,7 +1852,20 @@ class OnePalHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
 
         # Read body
-        content_length = int(self.headers.get("Content-Length", 0))
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+        except ValueError:
+            self._send_json(400, build_response(False, error={
+                "code": "INVALID_CONTENT_LENGTH",
+                "message": "request content length is invalid",
+            }))
+            return
+        if content_length < 0 or content_length > MAX_REQUEST_BODY_BYTES:
+            self._send_json(413, build_response(False, error={
+                "code": "PAYLOAD_TOO_LARGE",
+                "message": "request body exceeds the local API limit",
+            }))
+            return
         body_raw = self.rfile.read(content_length) if content_length > 0 else b"{}"
         try:
             body_json = json.loads(body_raw.decode("utf-8"))
@@ -1979,6 +2119,23 @@ class OnePalHandler(BaseHTTPRequestHandler):
                          self.readiness_audit_path)
                 resp = handle_cost_events_post(body_json, self.readiness_center_script, paths)
                 self._send_json(_status_for(resp), resp)
+            elif path == "/model/provider":
+                resp = handle_model_provider_post(body_json, self.model_provider_path)
+                self._send_json(_status_for(resp), resp)
+            elif path == "/model/provider/test":
+                resp = handle_model_provider_test(self.model_provider_path)
+                self._send_json(_status_for(resp), resp)
+            elif path == "/assistant/proposals":
+                paths = (self.automation_workflows_path, self.automation_runs_path, self.skill_candidates_path,
+                         self.skill_reviews_path, self.knowledge_nodes_path, self.knowledge_edges_path,
+                         self.knowledge_boundaries_path, self.knowledge_state_path, self.model_routes_path,
+                         self.cost_events_path, self.mcp_profiles_path, self.tool_policies_path,
+                         self.readiness_audit_path)
+                resp = handle_assistant_proposal(
+                    body_json, self.model_provider_path, self.cost_events_path,
+                    self.readiness_center_script, paths,
+                )
+                self._send_json(_status_for(resp), resp)
             elif path == "/mcp/profiles":
                 paths = (self.automation_workflows_path, self.automation_runs_path, self.skill_candidates_path,
                          self.skill_reviews_path, self.knowledge_nodes_path, self.knowledge_edges_path,
@@ -2056,6 +2213,7 @@ def main():
 
     server = create_server(host, args.port, ConfiguredHandler)
     print(f"OnePal API Server listening on http://{host}:{args.port}")
+    print("Dashboard: /dashboard/  Provider: GET/POST /model/provider  Assistant: POST /assistant/proposals")
     print("Endpoints: GET /health /tasks /task-trees /task-runs /mas-trace /memory/* /research/* /growth/*  POST /command")
     print("Press Ctrl+C to stop.")
     try:

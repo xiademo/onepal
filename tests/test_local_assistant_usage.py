@@ -41,7 +41,7 @@ def test_scripts_exist_and_target_local_api():
         "127.0.0.1",
         "18790",
         "scripts\\api_server.py",
-        "dashboard\\index.html",
+        "/dashboard/",
         "Start-Process",
         "-WindowStyle Hidden",
     ]
@@ -68,12 +68,12 @@ def test_manual_and_readme():
         "scripts/start_onepal.ps1",
         "scripts/stop_onepal.ps1",
         "http://127.0.0.1:18790",
-        "Dashboard",
-        "Memory",
-        "Research",
-        "Growth",
-        "Career",
-        "MCP、LiteLLM、RAG、n8n 当前没有启用",
+        "工作台",
+        "记忆",
+        "研究",
+        "成长",
+        "职业",
+        "MCP、LiteLLM、RAG、n8n、LangGraph 与浏览器自动化当前没有启用",
     ]
     test("U3b: manual covers startup, panels, and safety", all(term in manual for term in required_manual_terms))
 

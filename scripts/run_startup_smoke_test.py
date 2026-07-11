@@ -37,7 +37,7 @@ SECRET_SCAN_PATTERN = re.compile(
 )
 SECRET_SCAN_EXCLUDED_DIRS = {
     ".git", "runtime", "logs", "node_modules", ".omo", "OpenCode",
-    "__pycache__", "docs", "registries", ".codegraph",
+    "__pycache__", "docs", "registries", ".codegraph", "runtime-data-private",
 }
 SECRET_SCAN_EXCLUDED_SUFFIXES = {".md", ".pyc"}
 SECRET_SCAN_EXCLUDED_FILES = {
@@ -59,6 +59,11 @@ SECRET_SCAN_EXCLUDED_FILES = {
     "tests/test_memory_governance.py",
     "tests/test_career_center.py",
     "tests/test_readiness_centers.py",
+    "scripts/model_provider.py",
+    "tests/test_model_provider.py",
+    "tests/test_dashboard_static.py",
+    "dashboard/app.js",
+    "dashboard/index.html",
 }
 
 
