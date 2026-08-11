@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/knowledge_state.schema.json",
+  "title": "Knowledge State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["knowledge_state_id", "node_count", "edge_count", "boundary_count", "rag_enabled", "created_at"],
+  "properties": {
+    "knowledge_state_id": {"type": "string", "pattern": "^kstate_[a-zA-Z0-9_.-]+$"},
+    "node_count": {"type": "integer", "minimum": 0},
+    "edge_count": {"type": "integer", "minimum": 0},
+    "boundary_count": {"type": "integer", "minimum": 0},
+    "rag_enabled": {"type": "boolean", "const": false},
+    "created_at": {"type": "string"}
+  }
+}

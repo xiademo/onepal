@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/knowledge_edge.schema.json",
+  "title": "Knowledge Edge",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["edge_id", "from_node_ref", "to_node_ref", "relation", "source_refs", "confidence", "status", "created_at"],
+  "properties": {
+    "edge_id": {"type": "string", "pattern": "^kedge_[a-zA-Z0-9_.-]+$"},
+    "from_node_ref": {"type": "string", "pattern": "^knode_[a-zA-Z0-9_.-]+$"},
+    "to_node_ref": {"type": "string", "pattern": "^knode_[a-zA-Z0-9_.-]+$"},
+    "relation": {"type": "string", "enum": ["supports", "contradicts", "depends_on", "relates_to", "supersedes", "evidence_for"]},
+    "source_refs": {"type": "array", "items": {"type": "string"}},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "status": {"type": "string", "enum": ["candidate", "active", "archived"]},
+    "created_at": {"type": "string"}
+  }
+}

@@ -1,5 +1,11 @@
 # OnePal Architecture
 
+## Current Runtime Note
+
+当前工作台由 `scripts/api_server.py` 仅绑定到 `127.0.0.1` 或 `localhost`，并以固定白名单托管 `/dashboard/`、`/dashboard/style.css` 和 `/dashboard/app.js`。Dashboard 使用同源 API，不授予宽泛 CORS 访问。
+
+远程 OpenAI 兼容模型是受控的提案边界：配置仅保存在 Git 忽略的 `runtime-data-private/model_provider.json`；调用必须经用户点击，输入会进行 secret-like 检测，输出仅显示在页面，不能直接执行命令、写入记忆、启用工具或绕过审批。LiteLLM、MCP、RAG、n8n、LangGraph 与浏览器自动化仍未启用。
+
 ## Overview
 
 ```

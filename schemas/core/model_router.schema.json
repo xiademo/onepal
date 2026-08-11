@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/model_router.schema.json",
+  "title": "Model Router",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["router_id", "task_type", "default_model", "fallback_model", "budget_class", "litellm_enabled", "status", "created_at"],
+  "properties": {
+    "router_id": {"type": "string", "pattern": "^modelroute_[a-zA-Z0-9_.-]+$"},
+    "task_type": {"type": "string", "minLength": 1},
+    "default_model": {"type": "string"},
+    "fallback_model": {"type": ["string", "null"]},
+    "budget_class": {"type": "string", "enum": ["low", "medium", "high", "manual_review"]},
+    "litellm_enabled": {"type": "boolean", "const": false},
+    "status": {"type": "string", "enum": ["draft", "active", "disabled", "archived"]},
+    "created_at": {"type": "string"}
+  }
+}

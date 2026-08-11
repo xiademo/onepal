@@ -4,6 +4,7 @@ __pycache__/
 node_modules/
 dist/
 build/
+.codegraph/
 
 # OpenCode runtime state
 .omo/
@@ -11,6 +12,8 @@ build/
 # Local runtime state
 runtime/*.lock
 runtime/*.tmp
+runtime/*.pid
+runtime/*.log
 runtime/smoke_tests.jsonl
 runtime/*.jsonl
 runtime/**/*.jsonl
@@ -54,6 +57,7 @@ logs/runtime/
 memory/**/*.jsonl
 memory/indexes/*.json
 memory/reports/*.json
+memory/snapshots/files/*.json
 
 # Research Center — runtime data
 research/**/*.jsonl
@@ -64,3 +68,16 @@ logs/research_audit.jsonl
 growth/**/*.jsonl
 growth/reports/*.json
 logs/growth_audit.jsonl
+
+# Career Center runtime data
+career/**/*.jsonl
+career/reports/*.json
+logs/career_audit.jsonl
+
+# Readiness centers runtime data
+automation/**/*.jsonl
+capabilities/**/*.jsonl
+knowledge_graph/**/*.jsonl
+model_cost/**/*.jsonl
+mcp/**/*.jsonl
+logs/readiness_audit.jsonl

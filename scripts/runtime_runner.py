@@ -28,7 +28,7 @@ TASK_RUNS_LOG = PROJECT_ROOT / "runtime" / "task_runs" / "task_runs.jsonl"
 MAS_TRACE = PROJECT_ROOT / "logs" / "mas_trace.jsonl"
 REQUEST_ACTION = PROJECT_ROOT / "scripts" / "request_action.py"
 
-PY = "py"
+PY = sys.executable
 
 
 def now_iso():
@@ -147,12 +147,15 @@ def run_script(task, dry_run, mas_trace_path):
         return {"exit_code": -1, "stdout": "", "stderr": "timeout"}
 
 
-def run_action(task, dry_run, mas_trace_path):
+def run_action(task, dry_run, mas_trace_path, executions_log):
     """Delegate action_ref to request_action.py via subprocess."""
     action_refs = task.get("action_refs", [])
     action_id = action_refs[0] if action_refs else ""
     profile = "safe_readonly"
-    cmd = [PY, str(REQUEST_ACTION), "--action", action_id, "--profile", profile]
+    cmd = [
+        PY, str(REQUEST_ACTION), "--action", action_id, "--profile", profile,
+        "--executions-log", str(executions_log),
+    ]
     if dry_run:
         cmd.append("--dry-run")
 
@@ -228,7 +231,10 @@ def process_task(task, allowlist, dry_run, tasks_path, trees_path, task_runs_pat
     if exec_type == "script_ref":
         exec_result = run_script(task, dry_run, mas_trace_path)
     elif exec_type == "action_ref":
-        exec_result = run_action(task, dry_run, mas_trace_path)
+        exec_result = run_action(
+            task, dry_run, mas_trace_path,
+            task_runs_path.parent / "action_executions.jsonl",
+        )
     else:
         task_run["status"] = "rejected"
         task_run["error"] = f"cannot execute type: {exec_type}"

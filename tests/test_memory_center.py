@@ -11,7 +11,7 @@ import tempfile
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PY = "py"
+PY = sys.executable
 CANDIDATE_SCRIPT = PROJECT_ROOT / "scripts" / "memory_candidate.py"
 STORE_SCRIPT = PROJECT_ROOT / "scripts" / "memory_store.py"
 

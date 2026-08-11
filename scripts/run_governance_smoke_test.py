@@ -22,7 +22,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 REPORT_PATH = PROJECT_ROOT / "docs" / "reports" / "task03b_governance_smoke_test_report.md"
 
-PY = "py"
+PY = sys.executable
 PS = "powershell"
 
 
@@ -30,6 +30,14 @@ def run_cmd(cmd, timeout=120):
     """Run a command and return (exit_code, stdout, stderr)."""
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     return result.returncode, result.stdout, result.stderr
+
+
+def write_report(path, content):
+    """Write generated Markdown with stable LF newlines and no trailing spaces."""
+    normalized = content.replace("\r\n", "\n").replace("\r", "\n")
+    normalized = "\n".join(line.rstrip() for line in normalized.split("\n")).rstrip() + "\n"
+    with path.open("w", encoding="utf-8", newline="\n") as f:
+        f.write(normalized)
 
 
 def main():
@@ -161,7 +169,7 @@ None.
         report += f"**{fails} failures detected.** Resolve before proceeding.\n"
 
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_PATH.write_text(report, encoding="utf-8")
+    write_report(REPORT_PATH, report)
     print(f"Report written to: {REPORT_PATH}")
 
     print("\n" + "=" * 60)

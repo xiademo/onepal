@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/career_asset.schema.json",
+  "title": "Career Asset",
+  "description": "Evidence-backed career asset such as a project, role, certificate, portfolio item, or education record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["asset_id", "asset_type", "title", "summary", "evidence_refs", "status", "created_at"],
+  "properties": {
+    "asset_id": {"type": "string", "pattern": "^careerasset_[a-zA-Z0-9_.-]+$"},
+    "asset_type": {"type": "string", "enum": ["project", "experience", "education", "certificate", "portfolio", "skill", "other"]},
+    "title": {"type": "string", "minLength": 1},
+    "summary": {"type": "string"},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}},
+    "source_refs": {"type": "array", "items": {"type": "string"}},
+    "status": {"type": "string", "enum": ["draft", "ready", "needs_evidence", "archived"]},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": ["string", "null"]}
+  }
+}

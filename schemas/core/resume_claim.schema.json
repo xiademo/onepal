@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/resume_claim.schema.json",
+  "title": "Resume Claim",
+  "description": "A resume or profile claim that must be backed by career assets or evidence references before use.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["claim_id", "claim_text", "evidence_refs", "asset_refs", "confidence", "status", "created_at"],
+  "properties": {
+    "claim_id": {"type": "string", "pattern": "^claim_[a-zA-Z0-9_.-]+$"},
+    "claim_text": {"type": "string", "minLength": 1},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}},
+    "asset_refs": {"type": "array", "items": {"type": "string", "pattern": "^careerasset_[a-zA-Z0-9_.-]+$"}},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "status": {"type": "string", "enum": ["draft", "ready", "needs_evidence", "archived"]},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": ["string", "null"]}
+  }
+}

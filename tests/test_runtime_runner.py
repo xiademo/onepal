@@ -17,7 +17,7 @@ import tempfile
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PY = "py"
+PY = sys.executable
 GATEWAY = PROJECT_ROOT / "scripts" / "command_gateway.py"
 RUNNER = PROJECT_ROOT / "scripts" / "runtime_runner.py"
 REQUEST_ACTION = PROJECT_ROOT / "scripts" / "request_action.py"

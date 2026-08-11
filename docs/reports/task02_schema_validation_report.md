@@ -1,6 +1,6 @@
 ﻿# Task 02 Schema Validation Report
 
-Generated: 2026-06-07 15:01:13 +08
+Generated: 2026-07-11 15:46:07 +08
 
 ## 1. Summary
 
@@ -9,35 +9,53 @@ Generated: 2026-06-07 15:01:13 +08
 
 ## 2. Registry Completeness
 
-  [PASS] schemas/registry.json parsed (version: 1.1.0)
-  Registry: 22 entries   Core files: 22
+  [PASS] schemas/registry.json parsed (version: 1.4.0)
+  Registry: 41 entries   Core files: 41
 
   ### Registry -> File
-  [PASS] All 22 registry entries resolve to existing files
+  [PASS] All 41 registry entries resolve to existing files
 
   ### File -> Registry
-  [PASS] All 22 core schemas are registered
+  [PASS] All 41 core schemas are registered
 
   ### Metadata
   [PASS] Metadata scan complete
 
 ## 3. $ref Reference Check
 
-  [PASS] $ref check: 0 references across 22 schemas, 0 broken
+  [PASS] $ref check: 0 references across 41 schemas, 0 broken
 
 ## 4. Core Schema Compile (ajv --spec=draft2019)
 
     [PASS] action_execution.schema.json
     [PASS] action.schema.json
     [PASS] agent.schema.json
+    [PASS] application_record.schema.json
     [PASS] approval_decision.schema.json
+    [PASS] boundary_candidate.schema.json
+    [PASS] builder_task_prompt.schema.json
+    [PASS] career_asset.schema.json
+    [PASS] cost_event.schema.json
     [PASS] document_packet.schema.json
     [PASS] evidence_pack.schema.json
     [PASS] handoff.schema.json
+    [PASS] jd_evaluation.schema.json
+    [PASS] jd_item.schema.json
+    [PASS] knowledge_edge.schema.json
+    [PASS] knowledge_node.schema.json
+    [PASS] knowledge_state.schema.json
+    [PASS] mcp_server_profile.schema.json
     [PASS] memory_candidate.schema.json
+    [PASS] memory_change_request.schema.json
+    [PASS] memory_conflict.schema.json
+    [PASS] memory_entry.schema.json
+    [PASS] memory_quality_review.schema.json
+    [PASS] memory_snapshot.schema.json
+    [PASS] model_router.schema.json
     [PASS] permission_profile.schema.json
     [PASS] proposal.schema.json
     [PASS] research_packet.schema.json
+    [PASS] resume_claim.schema.json
     [PASS] runtime_service.schema.json
     [PASS] skill.schema.json
     [PASS] smoke_test.schema.json
@@ -47,9 +65,10 @@ Generated: 2026-06-07 15:01:13 +08
     [PASS] task_tree.schema.json
     [PASS] task.schema.json
     [PASS] tool_adapter.schema.json
+    [PASS] tool_trust_policy.schema.json
     [PASS] workflow_run.schema.json
     [PASS] workflow.schema.json
-  [PASS] All 22 core schemas compile successfully
+  [PASS] All 41 core schemas compile successfully
 
 ## 5. Example Validation
 

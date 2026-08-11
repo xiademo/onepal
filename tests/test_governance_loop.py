@@ -32,7 +32,7 @@ TEST_APPROVALS = TEST_RUNTIME / "approvals" / "approval_decisions.jsonl"
 TEST_REGISTRY = TEST_RUNTIME / "test_action_registry.json"
 TEST_PROFILES = TEST_RUNTIME / "test_permission_profiles.json"
 
-PY = "py"
+PY = sys.executable
 passed = 0
 failed = 0
 

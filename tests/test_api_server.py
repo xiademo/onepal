@@ -204,7 +204,7 @@ def test_T16(tmpdir):
 # --- Integration Test: Real HTTP Server ---
 
 def test_T17():
-    """T17: Real HTTP server starts, handles /health, stops."""
+    """T17: Local server serves health and the fixed dashboard assets only."""
     print("\n--- T17: Real HTTP server integration ---")
     from scripts.api_server import create_server, OnePalHandler
     import tempfile
@@ -231,10 +231,25 @@ def test_T17():
         # Make request
         url = f"http://{host}:{port}/health"
         resp = urllib.request.urlopen(url, timeout=5)
+        cors = resp.headers.get("Access-Control-Allow-Origin")
         body = json.loads(resp.read().decode("utf-8"))
         ok = body.get("ok") and body["data"].get("status") == "ready"
         result = test("T17: real HTTP server /health returns ready", ok, str(body.get("data", {}).get("status")))
-        return result
+
+        cors_ok = cors is None
+        test("T17b: real HTTP server does not allow cross-origin API reads", cors_ok, f"cors={cors}")
+
+        options_req = urllib.request.Request(url, method="OPTIONS")
+        options_resp = urllib.request.urlopen(options_req, timeout=5)
+        options_ok = options_resp.status == 204 and not options_resp.headers.get("Access-Control-Allow-Origin")
+        test("T17c: real HTTP server rejects CORS preflight grants", options_ok, f"status={options_resp.status}")
+
+        dashboard = urllib.request.urlopen(f"http://{host}:{port}/dashboard/", timeout=5)
+        dashboard_body = dashboard.read().decode("utf-8")
+        dashboard_ok = (dashboard.status == 200 and "OnePal 本地工作台" in dashboard_body and
+                        "default-src 'self'" in dashboard.headers.get("Content-Security-Policy", ""))
+        test("T17d: dashboard is served locally with restrictive CSP", dashboard_ok)
+        return result and cors_ok and options_ok and dashboard_ok
     except Exception as e:
         return test("T17: real HTTP server integration", False, str(e))
     finally:
@@ -285,6 +300,9 @@ def main():
         test_mem_propose_no_cid(md)
         test_mem_candidates_create(md)
         test_mem_response_structure(md)
+        test_mem_governance_get_empty(md)
+        test_mem_governance_post_validation(md)
+        test_mem_governance_flow(md)
     test_mem_no_shell()
     test_mem_unknown_route()
     test_mem_path_safety()
@@ -299,6 +317,33 @@ def main():
         test_research_post_validation(rd)
     test_research_sources_no_path()
     test_research_api_no_shell()
+
+    # Growth API tests
+    with tempfile.TemporaryDirectory(prefix="onepal_api_g_") as td:
+        gd = Path(td)
+        test_growth_get_empty(gd)
+        test_growth_candidate_validation(gd)
+        test_growth_goal_flow(gd)
+        test_growth_plan_flow(gd)
+        test_growth_review_flow(gd)
+    test_growth_api_no_shell()
+    test_growth_path_safety()
+
+    # Career API tests
+    with tempfile.TemporaryDirectory(prefix="onepal_api_career_") as td:
+        cd = Path(td)
+        test_career_get_empty(cd)
+        test_career_validation(cd)
+        test_career_flow(cd)
+    test_career_path_safety()
+
+    # Readiness Center API tests
+    with tempfile.TemporaryDirectory(prefix="onepal_api_ready_") as td:
+        rd = Path(td)
+        test_readiness_get_empty(rd)
+        test_readiness_validation(rd)
+        test_readiness_flow(rd)
+    test_readiness_path_safety()
 
     print("\n" + "=" * 60)
     total = passed + failed
@@ -357,6 +402,368 @@ def test_research_api_no_shell():
         lines = f.readlines()
     code = "".join([l for l in lines if "no shell=True" not in l and not l.strip().startswith("#")])
     test("R7: no shell=True in API", "shell=True" not in code)
+
+
+# --- Growth API Tests (Task 13-B) ---
+
+def test_growth_get_empty(tmpdir):
+    print("\n--- G1-G8: Growth GET empty lists ---")
+    from scripts.api_server import (
+        handle_growth_candidates_get, handle_growth_goals_get, handle_growth_capacity_get,
+        handle_growth_weekly_get, handle_growth_tasks_get, handle_growth_reviews_get,
+        handle_growth_adjustments_get, handle_growth_handoffs_get,
+    )
+    checks = [
+        ("G1: candidates empty", handle_growth_candidates_get(tmpdir / "c.jsonl", 20), "candidates"),
+        ("G2: goals empty", handle_growth_goals_get(tmpdir / "g.jsonl", 20), "goals"),
+        ("G3: capacity empty", handle_growth_capacity_get(tmpdir / "cap.jsonl", 20), "capacity"),
+        ("G4: weekly empty", handle_growth_weekly_get(tmpdir / "w.jsonl", 20), "weekly_plans"),
+        ("G5: daily tasks empty", handle_growth_tasks_get(tmpdir / "t.jsonl", 20), "daily_tasks"),
+        ("G6: reviews empty", handle_growth_reviews_get(tmpdir / "r.jsonl", 20), "reviews"),
+        ("G7: adjustments empty", handle_growth_adjustments_get(tmpdir / "a.jsonl", 20), "adjustments"),
+        ("G8: handoffs empty", handle_growth_handoffs_get(tmpdir / "h.jsonl", 20), "handoffs"),
+    ]
+    for label, resp, key in checks:
+        test(label, resp["ok"] and resp["data"][key] == [])
+
+
+def test_growth_candidate_validation(tmpdir):
+    print("\n--- G9-G12: Growth candidate validation ---")
+    from scripts.api_server import handle_growth_candidates_post, MAX_GROWTH_CONTENT
+    script = PROJECT_ROOT / "scripts" / "growth_goal.py"
+    cand = tmpdir / "candidates.jsonl"
+    audit = tmpdir / "audit.jsonl"
+    resp = handle_growth_candidates_post({"title": ""}, script, cand, audit)
+    test("G9: empty candidate title rejected", not resp["ok"] and resp["error"]["code"] == "EMPTY_TITLE")
+    resp2 = handle_growth_candidates_post({"title": "sk-abc123def456ghi"}, script, cand, audit)
+    test("G10: secret candidate rejected", not resp2["ok"] and resp2["error"]["code"] == "SECRET_DETECTED")
+    resp3 = handle_growth_candidates_post({"title": "x" * (MAX_GROWTH_CONTENT + 1)}, script, cand, audit)
+    test("G11: overlong candidate rejected", not resp3["ok"] and resp3["error"]["code"] == "CONTENT_TOO_LONG")
+    resp4 = handle_growth_candidates_post({"title": "Learn API design", "reason": "Task 13 test"}, script, cand, audit)
+    test("G12: valid candidate created", resp4["ok"] and resp4["data"].get("candidate_id"))
+
+
+def test_growth_goal_flow(tmpdir):
+    print("\n--- G13-G21: Growth goal flow ---")
+    from scripts.api_server import (
+        handle_growth_candidates_post, handle_growth_candidate_accept_post,
+        handle_growth_candidate_reject_post, handle_growth_goals_post,
+        handle_growth_archive_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "growth_goal.py"
+    cand = tmpdir / "candidates.jsonl"
+    goals = tmpdir / "goals.jsonl"
+    audit = tmpdir / "audit.jsonl"
+
+    create = handle_growth_candidates_post({"title": "Goal flow", "reason": "test"}, script, cand, audit)
+    cid = create["data"].get("candidate_id")
+    accept = handle_growth_candidate_accept_post({"candidate_id": cid}, script, cand, audit)
+    test("G13: candidate accepted", accept["ok"] and accept["data"]["status"] == "accepted")
+    goal = handle_growth_goals_post({"candidate_id": cid, "success_criteria": "Pass Task 13 tests"}, script, cand, goals, audit)
+    gid = goal["data"].get("goal_id")
+    test("G14: accepted candidate creates goal", goal["ok"] and gid)
+    missing_success = handle_growth_goals_post({"candidate_id": cid, "success_criteria": ""}, script, cand, goals, audit)
+    test("G15: missing success rejected", not missing_success["ok"] and missing_success["error"]["code"] == "MISSING_SUCCESS")
+    nf = handle_growth_candidate_accept_post({"candidate_id": "gc_missing"}, script, cand, audit)
+    test("G16: missing candidate rejected", not nf["ok"] and nf["error"]["code"] == "CANDIDATE_NOT_FOUND")
+    create2 = handle_growth_candidates_post({"title": "Not accepted", "reason": "test"}, script, cand, audit)
+    nonaccepted = handle_growth_goals_post({"candidate_id": create2["data"].get("candidate_id"), "success_criteria": "Done"}, script, cand, goals, audit)
+    test("G17: non-accepted candidate rejected", not nonaccepted["ok"] and nonaccepted["error"]["code"] == "NOT_ACCEPTED")
+    reject = handle_growth_candidate_reject_post({"candidate_id": create2["data"].get("candidate_id"), "reason": "not now"}, script, cand, audit)
+    test("G18: candidate rejected", reject["ok"] and reject["data"]["status"] == "rejected")
+    archive = handle_growth_archive_post({"goal_id": gid}, script, goals, audit)
+    test("G19: goal archived", archive["ok"] and archive["data"]["status"] == "archived")
+    missing_goal = handle_growth_archive_post({"goal_id": "goal_missing"}, script, goals, audit)
+    test("G20: missing goal archive rejected", not missing_goal["ok"] and missing_goal["error"]["code"] == "GOAL_NOT_FOUND")
+    bad_secret = handle_growth_goals_post({"candidate_id": cid, "success_criteria": "token=abcdefghijklmnopqrstuvwxyz"}, script, cand, goals, audit)
+    test("G21: secret success criteria rejected", not bad_secret["ok"] and bad_secret["error"]["code"] == "SECRET_DETECTED")
+
+
+def test_growth_plan_flow(tmpdir):
+    print("\n--- G22-G28: Growth plan flow ---")
+    from scripts.api_server import (
+        handle_growth_capacity_post, handle_growth_weekly_post,
+        handle_growth_tasks_post, handle_growth_task_status_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "growth_plan.py"
+    cap = tmpdir / "capacity.jsonl"
+    weekly = tmpdir / "weekly.jsonl"
+    tasks = tmpdir / "tasks.jsonl"
+    audit = tmpdir / "audit.jsonl"
+    capacity = handle_growth_capacity_post({"available_hours": 3, "active_goal_ids": ["g1", "g2"]}, script, cap, audit)
+    test("G22: capacity created", capacity["ok"] and capacity["data"].get("budget_id"))
+    bad_capacity = handle_growth_capacity_post({"available_hours": "abc"}, script, cap, audit)
+    test("G23: invalid capacity hours rejected", not bad_capacity["ok"] and bad_capacity["error"]["code"] == "INVALID_HOURS")
+    weekly_resp = handle_growth_weekly_post({"week_start": "2026-06-08", "goal_ids": ["g1"]}, script, weekly, audit)
+    test("G24: weekly plan created", weekly_resp["ok"] and weekly_resp["data"].get("weekly_plan_id"))
+    weekly_bad = handle_growth_weekly_post({"week_start": ""}, script, weekly, audit)
+    test("G25: missing week start rejected", not weekly_bad["ok"] and weekly_bad["error"]["code"] == "MISSING_WEEK_START")
+    task = handle_growth_tasks_post({"date": "2026-06-08", "goal_id": "g1", "title": "Implement growth API"}, script, tasks, audit)
+    tid = task["data"].get("task_id")
+    test("G26: daily task created", task["ok"] and tid)
+    status = handle_growth_task_status_post({"task_id": tid, "status": "done"}, script, tasks, audit)
+    test("G27: task status updated", status["ok"] and status["data"]["status"] == "done")
+    nf = handle_growth_task_status_post({"task_id": "task_missing", "status": "done"}, script, tasks, audit)
+    test("G28: missing task status rejected", not nf["ok"] and nf["error"]["code"] == "TASK_NOT_FOUND")
+
+
+def test_growth_review_flow(tmpdir):
+    print("\n--- G29-G34: Growth review flow ---")
+    from scripts.api_server import (
+        handle_growth_reviews_post, handle_growth_adjustments_post,
+        handle_growth_handoffs_post, handle_growth_archive_post,
+    )
+    review_script = PROJECT_ROOT / "scripts" / "growth_review.py"
+    goal_script = PROJECT_ROOT / "scripts" / "growth_goal.py"
+    reviews = tmpdir / "reviews.jsonl"
+    adjustments = tmpdir / "adjustments.jsonl"
+    goals = tmpdir / "goals.jsonl"
+    audit = tmpdir / "audit.jsonl"
+    review = handle_growth_reviews_post({"goal_id": "goal_1", "self_rating": 3, "blockers": "time"}, review_script, reviews, audit)
+    test("G29: review created", review["ok"] and review["data"].get("review_id"))
+    missing_review = handle_growth_reviews_post({"goal_id": ""}, review_script, reviews, audit)
+    test("G30: missing review goal rejected", not missing_review["ok"] and missing_review["error"]["code"] == "MISSING_ID")
+    adjustment = handle_growth_adjustments_post({"goal_id": "goal_1", "proposal_type": "reduce_scope", "reason": "overloaded", "impact": "high"}, review_script, adjustments, audit)
+    test("G31: high impact adjustment requires approval", adjustment["ok"] and adjustment["data"].get("approval_required") is True)
+    bad_adjustment = handle_growth_adjustments_post({"goal_id": "goal_1", "proposal_type": "", "reason": ""}, review_script, adjustments, audit)
+    test("G32: missing adjustment type rejected", not bad_adjustment["ok"] and bad_adjustment["error"]["code"] == "MISSING_ARGS")
+    missing_handoff = handle_growth_handoffs_post({"goal_id": ""}, review_script, audit)
+    test("G33: missing handoff goal rejected", not missing_handoff["ok"] and missing_handoff["error"]["code"] == "MISSING_ID")
+    missing_archive = handle_growth_archive_post({"goal_id": ""}, goal_script, goals, audit)
+    test("G34: missing archive goal rejected", not missing_archive["ok"] and missing_archive["error"]["code"] == "MISSING_ID")
+
+
+def test_growth_api_no_shell():
+    print("\n--- G35: Growth API no shell=True ---")
+    with open(PROJECT_ROOT / "scripts" / "api_server.py", "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    code = "".join([l for l in lines if "no shell=True" not in l and not l.strip().startswith("#")])
+    test("G35: no shell=True in Growth API", "shell=True" not in code)
+
+
+def test_growth_path_safety():
+    print("\n--- G36: Growth paths under project root ---")
+    from scripts.api_server import (
+        GROWTH_CANDIDATES_PATH, GROWTH_GOALS_PATH, GROWTH_CAPACITY_PATH,
+        GROWTH_WEEKLY_PATH, GROWTH_TASKS_PATH, GROWTH_REVIEWS_PATH,
+        GROWTH_ADJUSTMENTS_PATH, GROWTH_HANDOFFS_PATH,
+    )
+    paths = [GROWTH_CANDIDATES_PATH, GROWTH_GOALS_PATH, GROWTH_CAPACITY_PATH,
+             GROWTH_WEEKLY_PATH, GROWTH_TASKS_PATH, GROWTH_REVIEWS_PATH,
+             GROWTH_ADJUSTMENTS_PATH, GROWTH_HANDOFFS_PATH]
+    ok = all(str(p).startswith(str(PROJECT_ROOT)) for p in paths)
+    test("G36: all Growth paths under PROJECT_ROOT", ok)
+
+
+# --- Career API Tests (Task 15) ---
+
+def test_career_get_empty(tmpdir):
+    print("\n--- C1-C6: Career GET empty lists ---")
+    from scripts.api_server import (
+        handle_career_assets_get, handle_career_claims_get, handle_career_jds_get,
+        handle_career_evaluations_get, handle_career_applications_get,
+        handle_career_handoffs_get,
+    )
+    checks = [
+        ("C1: assets empty", handle_career_assets_get(tmpdir / "assets.jsonl", 20), "assets"),
+        ("C2: claims empty", handle_career_claims_get(tmpdir / "claims.jsonl", 20), "claims"),
+        ("C3: jds empty", handle_career_jds_get(tmpdir / "jds.jsonl", 20), "jds"),
+        ("C4: evaluations empty", handle_career_evaluations_get(tmpdir / "evals.jsonl", 20), "evaluations"),
+        ("C5: applications empty", handle_career_applications_get(tmpdir / "apps.jsonl", 20), "applications"),
+        ("C6: handoffs empty", handle_career_handoffs_get(tmpdir / "handoffs.jsonl", 20), "handoffs"),
+    ]
+    for label, resp, key in checks:
+        test(label, resp["ok"] and resp["data"][key] == [])
+
+
+def test_career_validation(tmpdir):
+    print("\n--- C7-C12: Career POST validation ---")
+    from scripts.api_server import (
+        handle_career_assets_post, handle_career_claims_post, handle_career_jds_post,
+        handle_career_evaluations_post, handle_career_applications_post,
+        handle_career_handoffs_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "career_center.py"
+    test("C7: asset empty title rejected", not handle_career_assets_post({"title": ""}, script)["ok"])
+    test("C8: claim empty rejected", not handle_career_claims_post({"claim_text": ""}, script)["ok"])
+    test("C9: jd empty title rejected", not handle_career_jds_post({"title": ""}, script)["ok"])
+    test("C10: evaluation missing jd rejected", not handle_career_evaluations_post({"jd_id": ""}, script)["ok"])
+    test("C11: application missing jd rejected", not handle_career_applications_post({"jd_id": ""}, script)["ok"])
+    test("C12: handoff missing source rejected", not handle_career_handoffs_post({"source_id": ""}, script)["ok"])
+
+
+def test_career_flow(tmpdir):
+    print("\n--- C13-C18: Career API flow ---")
+    from scripts.api_server import (
+        handle_career_assets_post, handle_career_claims_post, handle_career_jds_post,
+        handle_career_evaluations_post, handle_career_applications_post,
+        handle_career_handoffs_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "career_center.py"
+    assets = tmpdir / "assets.jsonl"
+    claims = tmpdir / "claims.jsonl"
+    jds = tmpdir / "jds.jsonl"
+    evals = tmpdir / "evals.jsonl"
+    apps = tmpdir / "apps.jsonl"
+    handoffs = tmpdir / "handoffs.jsonl"
+    audit = tmpdir / "audit.jsonl"
+    asset = handle_career_assets_post({"title": "API project", "summary": "Python API work", "evidence_refs": ["test:test_api_server"]},
+                                      script, assets, claims, jds, evals, apps, handoffs, audit)
+    aid = asset["data"].get("asset_id")
+    claim = handle_career_claims_post({"claim_text": "Built python api", "asset_refs": [aid]},
+                                      script, assets, claims, jds, evals, apps, handoffs, audit)
+    cid = claim["data"].get("claim_id")
+    jd = handle_career_jds_post({"title": "Backend Engineer", "requirements": ["python api"]},
+                                script, assets, claims, jds, evals, apps, handoffs, audit)
+    jid = jd["data"].get("jd_id")
+    evaluation = handle_career_evaluations_post({"jd_id": jid}, script, assets, claims, jds, evals, apps, handoffs, audit)
+    app = handle_career_applications_post({"jd_id": jid, "asset_refs": [aid], "claim_refs": [cid], "notes": "draft only"},
+                                          script, assets, claims, jds, evals, apps, handoffs, audit)
+    handoff = handle_career_handoffs_post({"source_type": "growth", "source_id": "goal_1", "summary": "career handoff"},
+                                          script, assets, claims, jds, evals, apps, handoffs, audit)
+    test("C13: asset created", asset["ok"] and aid)
+    test("C14: claim created", claim["ok"] and cid)
+    test("C15: jd created", jd["ok"] and jid)
+    test("C16: evaluation created", evaluation["ok"] and evaluation["data"].get("evaluation_id"))
+    test("C17: application manual only", app["ok"] and app["data"].get("auto_submit") is False)
+    test("C18: handoff created", handoff["ok"] and handoff["data"].get("handoff_id"))
+
+
+def test_career_path_safety():
+    print("\n--- C19: Career paths under project root ---")
+    from scripts.api_server import (
+        CAREER_ASSETS_PATH, CAREER_CLAIMS_PATH, CAREER_JDS_PATH,
+        CAREER_EVALUATIONS_PATH, CAREER_APPLICATIONS_PATH, CAREER_HANDOFFS_PATH,
+    )
+    paths = [CAREER_ASSETS_PATH, CAREER_CLAIMS_PATH, CAREER_JDS_PATH,
+             CAREER_EVALUATIONS_PATH, CAREER_APPLICATIONS_PATH, CAREER_HANDOFFS_PATH]
+    ok = all(str(p).startswith(str(PROJECT_ROOT)) for p in paths)
+    test("C19: all Career paths under PROJECT_ROOT", ok)
+
+
+# --- Readiness API Tests (Tasks 16-20) ---
+
+def readiness_paths(tmpdir):
+    return (
+        tmpdir / "workflows.jsonl",
+        tmpdir / "runs.jsonl",
+        tmpdir / "skills.jsonl",
+        tmpdir / "skill_reviews.jsonl",
+        tmpdir / "nodes.jsonl",
+        tmpdir / "edges.jsonl",
+        tmpdir / "boundaries.jsonl",
+        tmpdir / "state.jsonl",
+        tmpdir / "routes.jsonl",
+        tmpdir / "costs.jsonl",
+        tmpdir / "mcp_profiles.jsonl",
+        tmpdir / "tool_policies.jsonl",
+        tmpdir / "audit.jsonl",
+    )
+
+
+def test_readiness_get_empty(tmpdir):
+    print("\n--- RD1-RD12: Readiness GET empty lists ---")
+    from scripts.api_server import (
+        handle_automation_workflows_get, handle_automation_runs_get,
+        handle_skill_candidates_get, handle_skill_reviews_get,
+        handle_knowledge_nodes_get, handle_knowledge_edges_get,
+        handle_knowledge_boundaries_get, handle_knowledge_state_get,
+        handle_model_routes_get, handle_cost_events_get,
+        handle_mcp_profiles_get, handle_tool_policies_get,
+    )
+    checks = [
+        ("RD1: workflows empty", handle_automation_workflows_get(tmpdir / "w.jsonl", 20), "workflows"),
+        ("RD2: runs empty", handle_automation_runs_get(tmpdir / "r.jsonl", 20), "runs"),
+        ("RD3: skill candidates empty", handle_skill_candidates_get(tmpdir / "s.jsonl", 20), "skills"),
+        ("RD4: skill reviews empty", handle_skill_reviews_get(tmpdir / "sr.jsonl", 20), "skill_reviews"),
+        ("RD5: KG nodes empty", handle_knowledge_nodes_get(tmpdir / "n.jsonl", 20), "nodes"),
+        ("RD6: KG edges empty", handle_knowledge_edges_get(tmpdir / "e.jsonl", 20), "edges"),
+        ("RD7: KG boundaries empty", handle_knowledge_boundaries_get(tmpdir / "b.jsonl", 20), "boundaries"),
+        ("RD8: KG state empty", handle_knowledge_state_get(tmpdir / "ks.jsonl", 20), "knowledge_state"),
+        ("RD9: model routes empty", handle_model_routes_get(tmpdir / "mr.jsonl", 20), "model_routes"),
+        ("RD10: cost events empty", handle_cost_events_get(tmpdir / "ce.jsonl", 20), "cost_events"),
+        ("RD11: mcp profiles empty", handle_mcp_profiles_get(tmpdir / "mp.jsonl", 20), "mcp_profiles"),
+        ("RD12: tool policies empty", handle_tool_policies_get(tmpdir / "tp.jsonl", 20), "tool_policies"),
+    ]
+    for label, resp, key in checks:
+        test(label, resp["ok"] and resp["data"][key] == [])
+
+
+def test_readiness_validation(tmpdir):
+    print("\n--- RD13-RD20: Readiness POST validation ---")
+    from scripts.api_server import (
+        handle_automation_workflows_post, handle_automation_runs_post,
+        handle_skill_candidates_post, handle_skill_reviews_post,
+        handle_knowledge_nodes_post, handle_knowledge_edges_post,
+        handle_model_routes_post, handle_mcp_profiles_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "readiness_center.py"
+    p = readiness_paths(tmpdir / "validation")
+    test("RD13: workflow name required", not handle_automation_workflows_post({"name": ""}, script, p)["ok"])
+    test("RD14: workflow_id required", not handle_automation_runs_post({"workflow_id": ""}, script, p)["ok"])
+    test("RD15: skill name required", not handle_skill_candidates_post({"name": ""}, script, p)["ok"])
+    test("RD16: skill_id required", not handle_skill_reviews_post({"skill_id": ""}, script, p)["ok"])
+    test("RD17: KG label required", not handle_knowledge_nodes_post({"label": ""}, script, p)["ok"])
+    test("RD18: KG edge refs required", not handle_knowledge_edges_post({"from_node_ref": "", "to_node_ref": ""}, script, p)["ok"])
+    test("RD19: model task type required", not handle_model_routes_post({"task_type": ""}, script, p)["ok"])
+    test("RD20: mcp name required", not handle_mcp_profiles_post({"name": ""}, script, p)["ok"])
+
+
+def test_readiness_flow(tmpdir):
+    print("\n--- RD21-RD32: Readiness API flow ---")
+    from scripts.api_server import (
+        handle_automation_workflows_post, handle_automation_runs_post,
+        handle_skill_candidates_post, handle_skill_reviews_post,
+        handle_knowledge_nodes_post, handle_knowledge_edges_post,
+        handle_knowledge_boundaries_post, handle_knowledge_state_post,
+        handle_model_routes_post, handle_cost_events_post,
+        handle_mcp_profiles_post, handle_tool_policies_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "readiness_center.py"
+    p = readiness_paths(tmpdir / "flow")
+    wf = handle_automation_workflows_post({"name": "Manual weekly review", "action_refs": ["read_file"]}, script, p)
+    wid = wf["data"].get("workflow_id")
+    run = handle_automation_runs_post({"workflow_id": wid}, script, p)
+    skill = handle_skill_candidates_post({"name": "Local parser"}, script, p)
+    sid = skill["data"].get("skill_id")
+    review = handle_skill_reviews_post({"skill_id": sid}, script, p)
+    n1 = handle_knowledge_nodes_post({"label": "Memory governance"}, script, p)
+    n2 = handle_knowledge_nodes_post({"label": "Approval gate"}, script, p)
+    edge = handle_knowledge_edges_post({"from_node_ref": n1["data"].get("node_id"), "to_node_ref": n2["data"].get("node_id")}, script, p)
+    boundary = handle_knowledge_boundaries_post({"summary": "Needs user confirmation"}, script, p)
+    state = handle_knowledge_state_post({}, script, p)
+    route = handle_model_routes_post({"task_type": "planning"}, script, p)
+    cost = handle_cost_events_post({"task_ref": "task_1", "estimated_cost_usd": 0}, script, p)
+    mcp = handle_mcp_profiles_post({"name": "local-disabled"}, script, p)
+    policy = handle_tool_policies_post({"tool_ref": "tool_local"}, script, p)
+    test("RD21: workflow disabled", wf["ok"] and wf["data"].get("enabled") is False)
+    test("RD22: workflow run preflight", run["ok"] and run["data"].get("status") == "preflight")
+    test("RD23: skill disabled", skill["ok"] and skill["data"].get("enabled") is False)
+    test("RD24: skill review does not enable", review["ok"] and review["data"].get("enabled_after_review") is False)
+    test("RD25: KG node created", n1["ok"] and n1["data"].get("node_id"))
+    test("RD26: KG edge created", edge["ok"] and edge["data"].get("edge_id"))
+    test("RD27: boundary created", boundary["ok"] and boundary["data"].get("boundary_id"))
+    test("RD28: RAG disabled", state["ok"] and state["data"].get("rag_enabled") is False)
+    test("RD29: LiteLLM disabled", route["ok"] and route["data"].get("litellm_enabled") is False)
+    test("RD30: cost event created", cost["ok"] and cost["data"].get("cost_event_id"))
+    test("RD31: MCP disabled", mcp["ok"] and mcp["data"].get("enabled") is False and mcp["data"].get("write_actions_allowed") is False)
+    test("RD32: tool policy write disabled", policy["ok"] and policy["data"].get("write_allowed") is False)
+
+
+def test_readiness_path_safety():
+    print("\n--- RD33: Readiness paths under project root ---")
+    from scripts.api_server import (
+        AUTOMATION_WORKFLOWS_PATH, AUTOMATION_RUNS_PATH, SKILL_CANDIDATES_PATH,
+        SKILL_REVIEWS_PATH, KNOWLEDGE_NODES_PATH, KNOWLEDGE_EDGES_PATH,
+        KNOWLEDGE_BOUNDARIES_PATH, KNOWLEDGE_STATE_PATH, MODEL_ROUTES_PATH,
+        COST_EVENTS_PATH, MCP_PROFILES_PATH, TOOL_POLICIES_PATH,
+    )
+    paths = [AUTOMATION_WORKFLOWS_PATH, AUTOMATION_RUNS_PATH, SKILL_CANDIDATES_PATH,
+             SKILL_REVIEWS_PATH, KNOWLEDGE_NODES_PATH, KNOWLEDGE_EDGES_PATH,
+             KNOWLEDGE_BOUNDARIES_PATH, KNOWLEDGE_STATE_PATH, MODEL_ROUTES_PATH,
+             COST_EVENTS_PATH, MCP_PROFILES_PATH, TOOL_POLICIES_PATH]
+    ok = all(str(p).startswith(str(PROJECT_ROOT)) for p in paths)
+    test("RD33: all Readiness paths under PROJECT_ROOT", ok)
 
 
 # ─── Memory API Tests (Task 09-B) ───
@@ -481,6 +888,86 @@ def test_mem_response_structure(tmpdir):
         test(f"T28-{name}: has ok/data/error/meta", ok)
 
 
+def test_mem_governance_get_empty(tmpdir):
+    """T32: Memory governance GET handlers return empty lists."""
+    print("\n--- T32: Memory governance GET empty lists ---")
+    from scripts.api_server import (
+        handle_memory_reviews_get, handle_memory_conflicts_get,
+        handle_memory_changes_get, handle_memory_snapshots_get,
+    )
+    checks = [
+        ("T32a: reviews empty", handle_memory_reviews_get(tmpdir / "reviews.jsonl", 20), "reviews"),
+        ("T32b: conflicts empty", handle_memory_conflicts_get(tmpdir / "conflicts.jsonl", 20), "conflicts"),
+        ("T32c: changes empty", handle_memory_changes_get(tmpdir / "changes.jsonl", 20), "changes"),
+        ("T32d: snapshots empty", handle_memory_snapshots_get(tmpdir / "snapshots.jsonl", 20), "snapshots"),
+    ]
+    for label, resp, key in checks:
+        test(label, resp["ok"] and resp["data"][key] == [])
+
+
+def test_mem_governance_post_validation(tmpdir):
+    """T33: Memory governance POST handlers validate required fields."""
+    print("\n--- T33: Memory governance POST validation ---")
+    from scripts.api_server import (
+        handle_memory_review_post, handle_memory_conflict_post,
+        handle_memory_change_post, handle_memory_snapshot_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "memory_governance.py"
+    resp1 = handle_memory_review_post({"target_type": "bad", "target_ref": "x"}, script)
+    test("T33a: review invalid target_type rejected", not resp1["ok"] and resp1["error"]["code"] == "INVALID_TYPE")
+    resp2 = handle_memory_conflict_post({"target_type": "candidate", "target_ref": ""}, script)
+    test("T33b: conflict missing target_ref rejected", not resp2["ok"] and resp2["error"]["code"] == "MISSING_ID")
+    resp3 = handle_memory_change_post({"change_type": "create", "target_refs": "", "reason": "test"}, script)
+    test("T33c: change missing target_refs rejected", not resp3["ok"] and resp3["error"]["code"] == "MISSING_ID")
+    resp4 = handle_memory_snapshot_post({"reason": ""}, script)
+    test("T33d: snapshot missing reason rejected", not resp4["ok"] and resp4["error"]["code"] == "EMPTY_REASON")
+
+
+def test_mem_governance_flow(tmpdir):
+    """T34: Memory governance API delegates to script without direct store write."""
+    print("\n--- T34: Memory governance API flow ---")
+    from scripts.api_server import (
+        handle_memory_review_post, handle_memory_conflict_post,
+        handle_memory_change_post, handle_memory_snapshot_post,
+    )
+    script = PROJECT_ROOT / "scripts" / "memory_governance.py"
+    cand = tmpdir / "candidate.jsonl"
+    store = tmpdir / "store.jsonl"
+    reviews = tmpdir / "reviews.jsonl"
+    conflicts = tmpdir / "conflicts.jsonl"
+    changes = tmpdir / "changes.jsonl"
+    snapshots = tmpdir / "snapshots.jsonl"
+    snap_dir = tmpdir / "snapshot_files"
+    audit = tmpdir / "audit.jsonl"
+    candidate = {
+        "candidate_id": "memcand_api",
+        "memory_type": "project_decision",
+        "content": "OnePal memory governance uses review before change requests.",
+        "source_type": "manual",
+        "source_agent": "test",
+        "sensitivity": "internal",
+        "status": "captured",
+    }
+    with open(cand, "w", encoding="utf-8") as f:
+        f.write(json.dumps(candidate) + "\n")
+    before_store = store.read_text(encoding="utf-8") if store.exists() else ""
+    review = handle_memory_review_post({"target_type": "candidate", "target_ref": "memcand_api"},
+                                       script, cand, store, reviews, conflicts, changes, snapshots, snap_dir, audit)
+    conflict = handle_memory_conflict_post({"target_type": "candidate", "target_ref": "memcand_api"},
+                                           script, cand, store, reviews, conflicts, changes, snapshots, snap_dir, audit)
+    change = handle_memory_change_post({"change_type": "create", "target_refs": ["memcand_api"],
+                                        "source_candidate_id": "memcand_api", "reason": "Reviewed memory candidate"},
+                                       script, cand, store, reviews, conflicts, changes, snapshots, snap_dir, audit)
+    snapshot = handle_memory_snapshot_post({"reason": "Before applying memory change"},
+                                           script, cand, store, reviews, conflicts, changes, snapshots, snap_dir, audit)
+    after_store = store.read_text(encoding="utf-8") if store.exists() else ""
+    test("T34a: review delegated", review["ok"] and review["data"].get("review_id"))
+    test("T34b: conflict delegated", conflict["ok"] and conflict["data"].get("status") in ("created", "no_conflict"))
+    test("T34c: change request delegated", change["ok"] and change["data"].get("requires_user_approval") is True)
+    test("T34d: snapshot delegated", snapshot["ok"] and snapshot["data"].get("snapshot_id"))
+    test("T34e: governance API did not write store", before_store == after_store)
+
+
 def test_mem_no_shell():
     """T29: Memory API code has no shell=True (excluding comments)."""
     print("\n--- T29: Memory API no shell=True ---")
@@ -505,9 +992,17 @@ def test_mem_unknown_route():
 def test_mem_path_safety():
     """T31: No arbitrary path accepted by memory endpoints."""
     print("\n--- T31: memory endpoint path safety ---")
-    from scripts.api_server import MEMORY_CANDIDATES_PATH, MEMORY_STORE_PATH, MEMORY_PROPOSALS_PATH
+    from scripts.api_server import (
+        MEMORY_CANDIDATES_PATH, MEMORY_STORE_PATH, MEMORY_PROPOSALS_PATH,
+        MEMORY_REVIEWS_PATH, MEMORY_CONFLICTS_PATH, MEMORY_CHANGES_PATH,
+        MEMORY_SNAPSHOTS_PATH, MEMORY_SNAPSHOT_DIR,
+    )
     # Verify all paths are under PROJECT_ROOT
-    ok = all(str(p).startswith(str(PROJECT_ROOT)) for p in [MEMORY_CANDIDATES_PATH, MEMORY_PROPOSALS_PATH, MEMORY_STORE_PATH])
+    ok = all(str(p).startswith(str(PROJECT_ROOT)) for p in [
+        MEMORY_CANDIDATES_PATH, MEMORY_PROPOSALS_PATH, MEMORY_STORE_PATH,
+        MEMORY_REVIEWS_PATH, MEMORY_CONFLICTS_PATH, MEMORY_CHANGES_PATH,
+        MEMORY_SNAPSHOTS_PATH, MEMORY_SNAPSHOT_DIR,
+    ])
     test("T31: all memory paths under PROJECT_ROOT", ok)
 
 

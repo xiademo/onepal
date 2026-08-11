@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://ai-workbench.local/schemas/core/tool_trust_policy.schema.json",
+  "title": "Tool Trust Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tool_trust_policy_id", "tool_ref", "trust_level", "external_effect", "write_allowed", "approval_required", "status", "created_at"],
+  "properties": {
+    "tool_trust_policy_id": {"type": "string", "pattern": "^tooltrust_[a-zA-Z0-9_.-]+$"},
+    "tool_ref": {"type": "string"},
+    "trust_level": {"type": "string", "enum": ["trusted_internal_tool", "local_sandbox_tool", "read_only_external_tool", "untrusted_external_tool", "mcp_server_unverified"]},
+    "external_effect": {"type": "boolean"},
+    "write_allowed": {"type": "boolean", "const": false},
+    "approval_required": {"type": "boolean", "const": true},
+    "status": {"type": "string", "enum": ["draft", "active", "disabled", "archived"]},
+    "created_at": {"type": "string"}
+  }
+}

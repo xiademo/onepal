@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""OnePal Startup Smoke Test - Task 04-A (T1-T10)
+"""OnePal Startup Smoke Test - Task 04-A (T1-T11)
 
 Tests for the Runtime / Health / Startup Smoke Test baseline.
 
@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PY = "py"
+PY = sys.executable
 PS = "powershell"
 
 passed = 0
@@ -125,32 +125,28 @@ def test_T7():
 # T8: no secrets hit in project files
 def test_T8():
     print("\n--- T8: no secrets hit ---")
-    ec, stdout, stderr = run_cmd([
-        "rg", "--no-heading", "-n", "-i",
-        "(?:api[_-]?key|sk-[a-zA-Z0-9]{10,}|-----BEGIN.*KEY|token.*[=\\s][a-zA-Z0-9+/=]{20,})",
-        "--glob", "!**/.git/**",
-        "--glob", "!**/runtime/**",
-        "--glob", "!**/logs/**",
-        "--glob", "!**/node_modules/**",
-        "--glob", "!**/.omo/**",
-        "--glob", "!**/docs/**",
-        "--glob", "!**/*.md",
-        "--glob", "!scripts/run_startup_smoke_test.py",
-        "--glob", "!tests/test_startup_smoke_test.py",
-        "--glob", "!scripts/request_action.py",
-        "--glob", "!scripts/memory_candidate.py",
-        "--glob", "!scripts/research_packet.py",
-        "--glob", "!scripts/growth_goal.py",
-        "--glob", "!tests/test_memory_center.py",
-        "--glob", "!tests/test_api_server.py",
-        "--glob", "!tests/test_research_center.py",
-        "--glob", "!tests/test_growth_center.py",
-        "--glob", "!scripts/api_server.py",
-        "--glob", "!registries/**",
-        ".",
-    ], timeout=30)
-    hits = len(stdout.strip().split("\n")) if stdout.strip() else 0
+    sys.path.insert(0, str(PROJECT_ROOT))
+    from scripts.run_startup_smoke_test import scan_secret_hits
+    hits = scan_secret_hits()
     return test("T8: no secrets", hits == 0, f"{hits} hits" if hits else "clean")
+
+
+# T11: local CodeGraph cache excluded from secrets scan
+def test_T11():
+    print("\n--- T11: codegraph cache excluded ---")
+    sys.path.insert(0, str(PROJECT_ROOT))
+    from scripts.run_startup_smoke_test import is_secret_scan_excluded
+    path = PROJECT_ROOT / ".codegraph" / "codegraph.db"
+    return test("T11: codegraph cache excluded", is_secret_scan_excluded(path))
+
+
+def test_T12():
+    """T12: private local model configuration is excluded from secret scan."""
+    print("\n--- T12: private model configuration excluded ---")
+    sys.path.insert(0, str(PROJECT_ROOT))
+    from scripts.run_startup_smoke_test import is_secret_scan_excluded
+    path = PROJECT_ROOT / "runtime-data-private" / "model_provider.json"
+    return test("T12: private model configuration excluded", is_secret_scan_excluded(path))
 
 
 # T9: check_runtime_lock.py runs
@@ -186,7 +182,7 @@ def test_T10():
 def main():
     global passed, failed
     print("=" * 60)
-    print("OnePal Startup Smoke Tests (T1-T10)")
+    print("OnePal Startup Smoke Tests (T1-T11)")
     print("=" * 60)
 
     test_T1()
@@ -199,6 +195,8 @@ def main():
     test_T8()
     test_T9()
     test_T10()
+    test_T11()
+    test_T12()
 
     print("\n" + "=" * 60)
     total = passed + failed
